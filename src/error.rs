@@ -26,4 +26,16 @@ pub enum KrxError {
     /// Deserialization failed.
     #[error("Failed to parse response: {0}")]
     ParseError(String),
+
+    /// Authentication failed (HTTP 401).
+    #[error("Authentication failed (HTTP 401): Invalid or expired API key")]
+    Unauthorized,
+
+    /// Access forbidden (HTTP 403).
+    #[error("Access forbidden (HTTP 403): Endpoint requires service subscription")]
+    Forbidden,
+
+    /// Rate limit exceeded (HTTP 429).
+    #[error("Rate limit exceeded (HTTP 429): Daily call limit reached")]
+    RateLimited,
 }
