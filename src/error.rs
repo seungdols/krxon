@@ -7,39 +7,31 @@ use thiserror::Error;
 /// Domain-level errors for KRX API operations.
 #[derive(Debug, Error)]
 pub enum KrxError {
-    /// HTTP request failed.
-    #[error("HTTP request failed: {0}")]
-    HttpError(#[from] reqwest::Error),
-
-    /// API returned an error response.
-    #[error("KRX API error: {0}")]
-    ApiError(String),
-
-    /// Invalid date format provided.
-    #[error("Invalid date format: {0}")]
-    InvalidDate(String),
-
-    /// API key is missing.
-    #[error("API key not found. Provide via --key, KRX_API_KEY env var, or ~/.krxon/config.toml")]
-    MissingApiKey,
-
-    /// API key contains invalid characters for HTTP header.
-    #[error("Invalid API key: contains characters not allowed in HTTP headers")]
-    InvalidApiKey,
-
-    /// Deserialization failed.
-    #[error("Failed to parse response: {0}")]
-    ParseError(String),
-
-    /// Authentication failed (HTTP 401).
-    #[error("Authentication failed (HTTP 401): Invalid or expired API key")]
+    /// Authentication failed — invalid or missing API key.
+    #[error("API 인증 실패: API 키를 확인해주세요")]
     Unauthorized,
 
-    /// Access forbidden (HTTP 403).
-    #[error("Access forbidden (HTTP 403): Endpoint requires service subscription")]
-    Forbidden,
+    /// The endpoint requires a service subscription.
+    #[error("서비스 이용 신청이 필요합니다: {service}")]
+    ServiceNotSubscribed { service: String },
 
-    /// Rate limit exceeded (HTTP 429).
-    #[error("Rate limit exceeded (HTTP 429): Daily call limit reached")]
-    RateLimited,
+    /// Daily API call limit exceeded.
+    #[error("호출 한도 초과 (일 10,000회)")]
+    RateLimitExceeded,
+
+    /// Invalid date format provided.
+    #[error("유효하지 않은 날짜 형식: {0} (YYYYMMDD 필요)")]
+    InvalidDate(String),
+
+    /// No data returned (possibly a market holiday).
+    #[error("데이터 없음 (휴장일 가능성): {0}")]
+    NoData(String),
+
+    /// Deserialization / response parsing failed.
+    #[error("응답 파싱 실패: {0}")]
+    ParseError(String),
+
+    /// HTTP transport error.
+    #[error(transparent)]
+    Http(#[from] reqwest::Error),
 }

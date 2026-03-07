@@ -29,6 +29,7 @@ use endpoints::index::{
 use endpoints::stock::{
     fetch_kosdaq_stock, fetch_kosdaq_stock_info, fetch_kospi_stock, fetch_kospi_stock_info,
 };
+use output::format_records_table;
 
 /// Application entry point.
 #[tokio::main]
@@ -72,19 +73,11 @@ async fn handle_fetch_index(subcommand: IndexSubcommand) -> anyhow::Result<()> {
         | IndexSubcommand::Derivatives(args) => args,
     };
 
-    // Validate date format.
-    if !utils::is_valid_date_format(&args.date) {
-        anyhow::bail!(
-            "Invalid date format: '{}'. Expected YYYYMMDD (e.g. 20250301)",
-            args.date
-        );
-    }
+    utils::validate_date(&args.date)?;
 
-    // Resolve API key.
     let api_key = resolve_api_key(args.key.as_deref())?;
     let client = KrxClient::new(&api_key)?;
 
-    // Call the appropriate endpoint.
     let records = match &subcommand {
         IndexSubcommand::Krx(_) => fetch_krx_index(&client, &args.date).await?,
         IndexSubcommand::Kospi(_) => fetch_kospi_index(&client, &args.date).await?,
@@ -92,12 +85,26 @@ async fn handle_fetch_index(subcommand: IndexSubcommand) -> anyhow::Result<()> {
         IndexSubcommand::Derivatives(_) => fetch_derivatives_index(&client, &args.date).await?,
     };
 
-    // Output results (clap value_parser guarantees "json" or "table").
     match args.output.as_str() {
-        "table" => print_index_table(&records),
+        "table" => {
+            println!(
+                "{}",
+                format_records_table(
+                    &["Date", "Class", "Name", "Close", "Change", "Rate(%)"],
+                    &records,
+                    |r| vec![
+                        r.bas_dd.clone(),
+                        r.idx_clss.clone(),
+                        r.idx_nm.clone(),
+                        r.clsprc_idx.clone(),
+                        r.cmpprevdd_idx.clone(),
+                        r.fluc_rt.clone(),
+                    ],
+                )
+            );
+        }
         _ => {
-            let json = serde_json::to_string_pretty(&records)?;
-            println!("{}", json);
+            println!("{}", serde_json::to_string_pretty(&records)?);
         }
     }
 
@@ -113,15 +120,8 @@ async fn handle_fetch_stock(subcommand: StockSubcommand) -> anyhow::Result<()> {
         | StockSubcommand::KosdaqInfo(args) => args,
     };
 
-    // Validate date format.
-    if !utils::is_valid_date_format(&args.common.date) {
-        anyhow::bail!(
-            "Invalid date format: '{}'. Expected YYYYMMDD (e.g. 20250301)",
-            args.common.date
-        );
-    }
+    utils::validate_date(&args.common.date)?;
 
-    // Resolve API key.
     let api_key = resolve_api_key(args.common.key.as_deref())?;
     let client = KrxClient::new(&api_key)?;
 
@@ -160,7 +160,24 @@ fn output_stock_records(
         eprintln!("Fetched {} records", records.len());
     }
     match output {
-        "table" => print_stock_table(records),
+        "table" => {
+            println!(
+                "{}",
+                format_records_table(
+                    &["Date", "ISIN", "Name", "Close", "Change", "Rate(%)", "Volume"],
+                    records,
+                    |r| vec![
+                        r.bas_dd.clone(),
+                        r.isu_cd.clone(),
+                        r.isu_nm.clone(),
+                        r.tdd_clsprc.clone(),
+                        r.cmpprevdd_prc.clone(),
+                        r.fluc_rt.clone(),
+                        r.acc_trdvol.clone(),
+                    ],
+                )
+            );
+        }
         _ => println!("{}", serde_json::to_string_pretty(&records)?),
     }
     Ok(())
@@ -176,73 +193,26 @@ fn output_stock_info_records(
         eprintln!("Fetched {} records", records.len());
     }
     match output {
-        "table" => print_stock_info_table(records),
+        "table" => {
+            println!(
+                "{}",
+                format_records_table(
+                    &["ISIN", "Code", "Name", "English Name", "Market", "Par Value"],
+                    records,
+                    |r| vec![
+                        r.isu_cd.clone(),
+                        r.isu_srt_cd.clone(),
+                        r.isu_nm.clone(),
+                        r.isu_eng_nm.clone(),
+                        r.mkt_tp_nm.clone(),
+                        r.parval.clone(),
+                    ],
+                )
+            );
+        }
         _ => println!("{}", serde_json::to_string_pretty(&records)?),
     }
     Ok(())
-}
-
-/// Prints index records in a simple text table format.
-fn print_index_table(records: &[endpoints::index::IndexRecord]) {
-    if records.is_empty() {
-        println!("No data found.");
-        return;
-    }
-
-    println!(
-        "{:<12} {:<10} {:<30} {:>12} {:>10} {:>8}",
-        "Date", "Class", "Name", "Close", "Change", "Rate(%)"
-    );
-    println!("{}", "-".repeat(90));
-
-    for r in records {
-        println!(
-            "{:<12} {:<10} {:<30} {:>12} {:>10} {:>8}",
-            r.bas_dd, r.idx_clss, r.idx_nm, r.clsprc_idx, r.cmpprevdd_idx, r.fluc_rt
-        );
-    }
-}
-
-/// Prints stock daily records in a simple text table format.
-fn print_stock_table(records: &[endpoints::stock::StockRecord]) {
-    if records.is_empty() {
-        println!("No data found.");
-        return;
-    }
-
-    println!(
-        "{:<12} {:<14} {:<20} {:>10} {:>10} {:>8} {:>14}",
-        "Date", "ISIN", "Name", "Close", "Change", "Rate(%)", "Volume"
-    );
-    println!("{}", "-".repeat(96));
-
-    for r in records {
-        println!(
-            "{:<12} {:<14} {:<20} {:>10} {:>10} {:>8} {:>14}",
-            r.bas_dd, r.isu_cd, r.isu_nm, r.tdd_clsprc, r.cmpprevdd_prc, r.fluc_rt, r.acc_trdvol
-        );
-    }
-}
-
-/// Prints stock info records in a simple text table format.
-fn print_stock_info_table(records: &[endpoints::stock::StockInfoRecord]) {
-    if records.is_empty() {
-        println!("No data found.");
-        return;
-    }
-
-    println!(
-        "{:<14} {:<8} {:<20} {:<20} {:<10} {:>10}",
-        "ISIN", "Code", "Name", "English Name", "Market", "Par Value"
-    );
-    println!("{}", "-".repeat(90));
-
-    for r in records {
-        println!(
-            "{:<14} {:<8} {:<20} {:<20} {:<10} {:>10}",
-            r.isu_cd, r.isu_srt_cd, r.isu_nm, r.isu_eng_nm, r.mkt_tp_nm, r.parval
-        );
-    }
 }
 
 /// Minimum date for ETN data availability.
@@ -254,24 +224,16 @@ async fn handle_fetch_etp(subcommand: EtpSubcommand) -> anyhow::Result<()> {
         EtpSubcommand::Etf(args) | EtpSubcommand::Etn(args) => args,
     };
 
-    // Validate date format.
-    if !utils::is_valid_date_format(&args.date) {
-        anyhow::bail!(
-            "Invalid date format: '{}'. Expected YYYYMMDD (e.g. 20250301)",
-            args.date
-        );
-    }
+    utils::validate_date(&args.date)?;
 
     // Warn if ETN date is before data availability.
     if matches!(&subcommand, EtpSubcommand::Etn(_)) && args.date.as_str() < ETN_MIN_DATE {
         eprintln!("Warning: ETN data is available from 2014-11-17. Results may be empty.");
     }
 
-    // Resolve API key.
     let api_key = resolve_api_key(args.key.as_deref())?;
     let client = KrxClient::new(&api_key)?;
 
-    // Call the appropriate endpoint and output results.
     match &subcommand {
         EtpSubcommand::Etf(_) => {
             let mut records = fetch_etf_daily(&client, &args.date).await?;
@@ -279,7 +241,24 @@ async fn handle_fetch_etp(subcommand: EtpSubcommand) -> anyhow::Result<()> {
                 records.retain(|r| r.isu_cd == *isin);
             }
             match args.output.as_str() {
-                "table" => print_etf_table(&records),
+                "table" => {
+                    println!(
+                        "{}",
+                        format_records_table(
+                            &["Date", "Code", "Name", "Close", "Change", "Rate(%)", "NAV"],
+                            &records,
+                            |r| vec![
+                                r.bas_dd.clone(),
+                                r.isu_cd.clone(),
+                                r.isu_nm.clone(),
+                                r.tdd_clsprc.clone(),
+                                r.cmpprevdd_prc.clone(),
+                                r.fluc_rt.clone(),
+                                r.nav.clone(),
+                            ],
+                        )
+                    );
+                }
                 _ => println!("{}", serde_json::to_string_pretty(&records)?),
             }
         }
@@ -289,55 +268,30 @@ async fn handle_fetch_etp(subcommand: EtpSubcommand) -> anyhow::Result<()> {
                 records.retain(|r| r.isu_cd == *isin);
             }
             match args.output.as_str() {
-                "table" => print_etn_table(&records),
+                "table" => {
+                    println!(
+                        "{}",
+                        format_records_table(
+                            &["Date", "Code", "Name", "Close", "Change", "Rate(%)", "IndicVal"],
+                            &records,
+                            |r| vec![
+                                r.bas_dd.clone(),
+                                r.isu_cd.clone(),
+                                r.isu_nm.clone(),
+                                r.tdd_clsprc.clone(),
+                                r.cmpprevdd_prc.clone(),
+                                r.fluc_rt.clone(),
+                                r.indic_val_amt.clone(),
+                            ],
+                        )
+                    );
+                }
                 _ => println!("{}", serde_json::to_string_pretty(&records)?),
             }
         }
     }
 
     Ok(())
-}
-
-/// Prints ETF records in a simple text table format.
-fn print_etf_table(records: &[endpoints::etp::EtfRecord]) {
-    if records.is_empty() {
-        println!("No data found.");
-        return;
-    }
-
-    println!(
-        "{:<12} {:<14} {:<24} {:>10} {:>10} {:>8} {:>14}",
-        "Date", "Code", "Name", "Close", "Change", "Rate(%)", "NAV"
-    );
-    println!("{}", "-".repeat(100));
-
-    for r in records {
-        println!(
-            "{:<12} {:<14} {:<24} {:>10} {:>10} {:>8} {:>14}",
-            r.bas_dd, r.isu_cd, r.isu_nm, r.tdd_clsprc, r.cmpprevdd_prc, r.fluc_rt, r.nav
-        );
-    }
-}
-
-/// Prints ETN records in a simple text table format.
-fn print_etn_table(records: &[endpoints::etp::EtnRecord]) {
-    if records.is_empty() {
-        println!("No data found.");
-        return;
-    }
-
-    println!(
-        "{:<12} {:<14} {:<24} {:>10} {:>10} {:>8} {:>14}",
-        "Date", "Code", "Name", "Close", "Change", "Rate(%)", "IndicVal"
-    );
-    println!("{}", "-".repeat(100));
-
-    for r in records {
-        println!(
-            "{:<12} {:<14} {:<24} {:>10} {:>10} {:>8} {:>14}",
-            r.bas_dd, r.isu_cd, r.isu_nm, r.tdd_clsprc, r.cmpprevdd_prc, r.fluc_rt, r.indic_val_amt
-        );
-    }
 }
 
 /// Handles `fetch derivatives <subcommand>`.
@@ -351,15 +305,8 @@ async fn handle_fetch_derivatives(subcommand: DerivativesSubcommand) -> anyhow::
         | DerivativesSubcommand::StockOptionsKosdaq(args) => args,
     };
 
-    // Validate date format.
-    if !utils::is_valid_date_format(&args.date) {
-        anyhow::bail!(
-            "Invalid date format: '{}'. Expected YYYYMMDD (e.g. 20250301)",
-            args.date
-        );
-    }
+    utils::validate_date(&args.date)?;
 
-    // Resolve API key.
     let api_key = resolve_api_key(args.key.as_deref())?;
     let client = KrxClient::new(&api_key)?;
 
@@ -367,108 +314,94 @@ async fn handle_fetch_derivatives(subcommand: DerivativesSubcommand) -> anyhow::
         DerivativesSubcommand::Futures(_) => {
             let records = fetch_futures_daily(&client, &args.date).await?;
             eprintln!("Fetched {} records", records.len());
-            match args.output.as_str() {
-                "table" => print_futures_table(&records),
-                _ => println!("{}", serde_json::to_string_pretty(&records)?),
-            }
+            output_futures(&records, &args.output)?;
         }
         DerivativesSubcommand::StockFuturesKospi(_) => {
             let records = fetch_stock_futures_kospi_daily(&client, &args.date).await?;
             eprintln!("Fetched {} records", records.len());
-            match args.output.as_str() {
-                "table" => print_futures_table(&records),
-                _ => println!("{}", serde_json::to_string_pretty(&records)?),
-            }
+            output_futures(&records, &args.output)?;
         }
         DerivativesSubcommand::StockFuturesKosdaq(_) => {
             let records = fetch_stock_futures_kosdaq_daily(&client, &args.date).await?;
             eprintln!("Fetched {} records", records.len());
-            match args.output.as_str() {
-                "table" => print_futures_table(&records),
-                _ => println!("{}", serde_json::to_string_pretty(&records)?),
-            }
+            output_futures(&records, &args.output)?;
         }
         DerivativesSubcommand::Options(_) => {
             let records = fetch_options_daily(&client, &args.date).await?;
             eprintln!("Fetched {} records", records.len());
-            match args.output.as_str() {
-                "table" => print_options_table(&records),
-                _ => println!("{}", serde_json::to_string_pretty(&records)?),
-            }
+            output_options(&records, &args.output)?;
         }
         DerivativesSubcommand::StockOptionsKospi(_) => {
             let records = fetch_stock_options_kospi_daily(&client, &args.date).await?;
             eprintln!("Fetched {} records", records.len());
-            match args.output.as_str() {
-                "table" => print_options_table(&records),
-                _ => println!("{}", serde_json::to_string_pretty(&records)?),
-            }
+            output_options(&records, &args.output)?;
         }
         DerivativesSubcommand::StockOptionsKosdaq(_) => {
             let records = fetch_stock_options_kosdaq_daily(&client, &args.date).await?;
             eprintln!("Fetched {} records", records.len());
-            match args.output.as_str() {
-                "table" => print_options_table(&records),
-                _ => println!("{}", serde_json::to_string_pretty(&records)?),
-            }
+            output_options(&records, &args.output)?;
         }
     }
 
     Ok(())
 }
 
-/// Prints futures records in a simple text table format.
-fn print_futures_table(records: &[endpoints::derivatives::FuturesRecord]) {
-    if records.is_empty() {
-        println!("No data found.");
-        return;
+/// Outputs futures records in table or JSON format.
+fn output_futures(
+    records: &[endpoints::derivatives::FuturesRecord],
+    output: &str,
+) -> anyhow::Result<()> {
+    match output {
+        "table" => {
+            println!(
+                "{}",
+                format_records_table(
+                    &["Date", "Code", "Name", "Close", "Settle", "Change", "Volume", "OpenInt"],
+                    records,
+                    |r| vec![
+                        r.bas_dd.clone(),
+                        r.isu_cd.clone(),
+                        r.isu_nm.clone(),
+                        r.tdd_clsprc.clone(),
+                        r.setl_prc.clone(),
+                        r.cmpprevdd_prc.clone(),
+                        r.acc_trdvol.clone(),
+                        r.acc_opnint_qty.clone(),
+                    ],
+                )
+            );
+        }
+        _ => println!("{}", serde_json::to_string_pretty(&records)?),
     }
-
-    println!(
-        "{:<12} {:<20} {:<20} {:>10} {:>10} {:>10} {:>14} {:>14}",
-        "Date", "Code", "Name", "Close", "Settle", "Change", "Volume", "OpenInt"
-    );
-    println!("{}", "-".repeat(118));
-
-    for r in records {
-        println!(
-            "{:<12} {:<20} {:<20} {:>10} {:>10} {:>10} {:>14} {:>14}",
-            r.bas_dd,
-            r.isu_cd,
-            r.isu_nm,
-            r.tdd_clsprc,
-            r.setl_prc,
-            r.cmpprevdd_prc,
-            r.acc_trdvol,
-            r.acc_opnint_qty
-        );
-    }
+    Ok(())
 }
 
-/// Prints options records in a simple text table format.
-fn print_options_table(records: &[endpoints::derivatives::OptionsRecord]) {
-    if records.is_empty() {
-        println!("No data found.");
-        return;
+/// Outputs options records in table or JSON format.
+fn output_options(
+    records: &[endpoints::derivatives::OptionsRecord],
+    output: &str,
+) -> anyhow::Result<()> {
+    match output {
+        "table" => {
+            println!(
+                "{}",
+                format_records_table(
+                    &["Date", "Code", "Name", "Type", "Close", "Change", "Volume", "IV"],
+                    records,
+                    |r| vec![
+                        r.bas_dd.clone(),
+                        r.isu_cd.clone(),
+                        r.isu_nm.clone(),
+                        r.rght_tp_nm.clone(),
+                        r.tdd_clsprc.clone(),
+                        r.cmpprevdd_prc.clone(),
+                        r.acc_trdvol.clone(),
+                        r.imp_volt.clone(),
+                    ],
+                )
+            );
+        }
+        _ => println!("{}", serde_json::to_string_pretty(&records)?),
     }
-
-    println!(
-        "{:<12} {:<20} {:<24} {:<6} {:>10} {:>10} {:>14} {:>10}",
-        "Date", "Code", "Name", "Type", "Close", "Change", "Volume", "IV"
-    );
-    println!("{}", "-".repeat(114));
-
-    for r in records {
-        println!(
-            "{:<12} {:<20} {:<24} {:<6} {:>10} {:>10} {:>14} {:>10}",
-            r.bas_dd,
-            r.isu_cd,
-            r.isu_nm,
-            r.rght_tp_nm,
-            r.tdd_clsprc,
-            r.cmpprevdd_prc,
-            r.acc_trdvol,
-            r.imp_volt
-        );
-    }
+    Ok(())
 }
