@@ -89,19 +89,11 @@ pub struct FetchArgs {
 /// Arguments for stock fetch subcommands (adds --isin option).
 #[derive(clap::Args, Debug)]
 pub struct StockFetchArgs {
-    /// Base date in YYYYMMDD format.
-    #[arg(long)]
-    pub date: String,
+    /// Common fetch arguments (date, key, output).
+    #[command(flatten)]
+    pub common: FetchArgs,
 
     /// ISIN code to filter a specific stock (e.g. KR7005930003).
     #[arg(long)]
     pub isin: Option<String>,
-
-    /// API key (overrides KRX_API_KEY env var).
-    #[arg(long)]
-    pub key: Option<String>,
-
-    /// Output format: json or table.
-    #[arg(long, default_value = "json", value_parser = ["json", "table"])]
-    pub output: String,
 }

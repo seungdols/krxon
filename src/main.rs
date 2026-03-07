@@ -97,66 +97,71 @@ async fn handle_fetch_stock(subcommand: StockSubcommand) -> anyhow::Result<()> {
     };
 
     // Validate date format.
-    if !utils::is_valid_date_format(&args.date) {
+    if !utils::is_valid_date_format(&args.common.date) {
         anyhow::bail!(
             "Invalid date format: '{}'. Expected YYYYMMDD (e.g. 20250301)",
-            args.date
+            args.common.date
         );
     }
 
     // Resolve API key.
-    let api_key = resolve_api_key(args.key.as_deref())?;
+    let api_key = resolve_api_key(args.common.key.as_deref())?;
     let client = KrxClient::new(&api_key)?;
 
     let isin = args.isin.as_deref();
+    let date = &args.common.date;
 
     match &subcommand {
-        StockSubcommand::Kospi(_) | StockSubcommand::Kosdaq(_) => {
-            let records = match &subcommand {
-                StockSubcommand::Kospi(_) => fetch_kospi_stock(&client, &args.date, isin).await?,
-                StockSubcommand::Kosdaq(_) => fetch_kosdaq_stock(&client, &args.date, isin).await?,
-                _ => unreachable!(),
-            };
-
-            // Log record count when fetching all stocks.
-            if isin.is_none() {
-                eprintln!("Fetched {} records", records.len());
-            }
-
-            match args.output.as_str() {
-                "table" => print_stock_table(&records),
-                _ => {
-                    let json = serde_json::to_string_pretty(&records)?;
-                    println!("{}", json);
-                }
-            }
+        StockSubcommand::Kospi(_) => {
+            let records = fetch_kospi_stock(&client, date, isin).await?;
+            output_stock_records(&records, isin, &args.common.output)?;
         }
-        StockSubcommand::KospiInfo(_) | StockSubcommand::KosdaqInfo(_) => {
-            let records = match &subcommand {
-                StockSubcommand::KospiInfo(_) => {
-                    fetch_kospi_stock_info(&client, &args.date, isin).await?
-                }
-                StockSubcommand::KosdaqInfo(_) => {
-                    fetch_kosdaq_stock_info(&client, &args.date, isin).await?
-                }
-                _ => unreachable!(),
-            };
-
-            // Log record count when fetching all stocks.
-            if isin.is_none() {
-                eprintln!("Fetched {} records", records.len());
-            }
-
-            match args.output.as_str() {
-                "table" => print_stock_info_table(&records),
-                _ => {
-                    let json = serde_json::to_string_pretty(&records)?;
-                    println!("{}", json);
-                }
-            }
+        StockSubcommand::Kosdaq(_) => {
+            let records = fetch_kosdaq_stock(&client, date, isin).await?;
+            output_stock_records(&records, isin, &args.common.output)?;
+        }
+        StockSubcommand::KospiInfo(_) => {
+            let records = fetch_kospi_stock_info(&client, date, isin).await?;
+            output_stock_info_records(&records, isin, &args.common.output)?;
+        }
+        StockSubcommand::KosdaqInfo(_) => {
+            let records = fetch_kosdaq_stock_info(&client, date, isin).await?;
+            output_stock_info_records(&records, isin, &args.common.output)?;
         }
     }
 
+    Ok(())
+}
+
+/// Outputs stock daily records with optional record count logging.
+fn output_stock_records(
+    records: &[endpoints::stock::StockRecord],
+    isin: Option<&str>,
+    output: &str,
+) -> anyhow::Result<()> {
+    if isin.is_none() {
+        eprintln!("Fetched {} records", records.len());
+    }
+    match output {
+        "table" => print_stock_table(records),
+        _ => println!("{}", serde_json::to_string_pretty(&records)?),
+    }
+    Ok(())
+}
+
+/// Outputs stock info records with optional record count logging.
+fn output_stock_info_records(
+    records: &[endpoints::stock::StockInfoRecord],
+    isin: Option<&str>,
+    output: &str,
+) -> anyhow::Result<()> {
+    if isin.is_none() {
+        eprintln!("Fetched {} records", records.len());
+    }
+    match output {
+        "table" => print_stock_info_table(records),
+        _ => println!("{}", serde_json::to_string_pretty(&records)?),
+    }
     Ok(())
 }
 
@@ -218,7 +223,7 @@ fn print_stock_info_table(records: &[endpoints::stock::StockInfoRecord]) {
     for r in records {
         println!(
             "{:<14} {:<8} {:<20} {:<20} {:<10} {:>10}",
-            r.isu_cd, r.isu_srt_cd, r.isu_abbrv, r.isu_eng_nm, r.mkt_tp_nm, r.parval
+            r.isu_cd, r.isu_srt_cd, r.isu_nm, r.isu_eng_nm, r.mkt_tp_nm, r.parval
         );
     }
 }
