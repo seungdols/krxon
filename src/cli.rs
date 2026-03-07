@@ -62,6 +62,6 @@ pub struct FetchArgs {
     pub key: Option<String>,
 
     /// Output format: json or table.
-    #[arg(long, default_value = "json")]
+    #[arg(long, default_value = "json", value_parser = ["json", "table"])]
     pub output: String,
 }

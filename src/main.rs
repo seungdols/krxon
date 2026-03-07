@@ -69,17 +69,12 @@ async fn handle_fetch_index(subcommand: IndexSubcommand) -> anyhow::Result<()> {
         IndexSubcommand::Derivatives(_) => fetch_derivatives_index(&client, &args.date).await?,
     };
 
-    // Output results.
+    // Output results (clap value_parser guarantees "json" or "table").
     match args.output.as_str() {
-        "json" => {
+        "table" => print_index_table(&records),
+        _ => {
             let json = serde_json::to_string_pretty(&records)?;
             println!("{}", json);
-        }
-        "table" => {
-            print_index_table(&records);
-        }
-        other => {
-            anyhow::bail!("Unknown output format: '{}'. Use 'json' or 'table'", other);
         }
     }
 
