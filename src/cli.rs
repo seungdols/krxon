@@ -2,10 +2,10 @@
 
 use clap::{Parser, Subcommand};
 
-/// krxon - CLI tool and MCP server for KRX Open API.
+/// krxon - CLI tool for KRX Open API.
 #[derive(Parser, Debug)]
 #[command(name = "krxon")]
-#[command(about = "CLI tool and MCP server for KRX (Korea Exchange) Open API")]
+#[command(about = "CLI tool for KRX (Korea Exchange) Open API")]
 #[command(version)]
 pub struct Cli {
     /// Subcommand to execute.
@@ -26,8 +26,6 @@ pub enum Commands {
         #[command(subcommand)]
         language: GenerateLanguage,
     },
-    /// Run as an MCP server.
-    Serve,
 }
 
 /// Fetch resource categories.
@@ -47,6 +45,11 @@ pub enum FetchResource {
     Etp {
         #[command(subcommand)]
         subcommand: EtpSubcommand,
+    },
+    /// Fetch derivatives (futures/options) data.
+    Derivatives {
+        #[command(subcommand)]
+        subcommand: DerivativesSubcommand,
     },
 }
 
@@ -85,6 +88,27 @@ pub enum EtpSubcommand {
     Etf(EtpFetchArgs),
     /// ETN daily trading data.
     Etn(EtpFetchArgs),
+}
+
+/// Derivatives subcommands.
+#[derive(Subcommand, Debug)]
+pub enum DerivativesSubcommand {
+    /// Futures daily trading data.
+    Futures(FetchArgs),
+    /// KOSPI stock futures daily trading data.
+    #[command(name = "stock-futures-kospi")]
+    StockFuturesKospi(FetchArgs),
+    /// KOSDAQ stock futures daily trading data.
+    #[command(name = "stock-futures-kosdaq")]
+    StockFuturesKosdaq(FetchArgs),
+    /// Options daily trading data.
+    Options(FetchArgs),
+    /// KOSPI stock options daily trading data.
+    #[command(name = "stock-options-kospi")]
+    StockOptionsKospi(FetchArgs),
+    /// KOSDAQ stock options daily trading data.
+    #[command(name = "stock-options-kosdaq")]
+    StockOptionsKosdaq(FetchArgs),
 }
 
 /// Arguments for ETP fetch subcommands.

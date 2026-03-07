@@ -2,7 +2,7 @@
 name = "krxon"
 version = "0.1.0"
 edition = "2021"
-description = "CLI tool and MCP server for KRX (Korea Exchange) Open API"
+description = "CLI tool for KRX (Korea Exchange) Open API"
 license = "MIT"
 
 [dependencies]
@@ -15,7 +15,6 @@ tokio = { version = "1", features = ["full"] }
 anyhow = "1"
 thiserror = "1"
 tera = "1"
-rmcp = { version = "0.1", features = ["server"] }
 
 [dev-dependencies]
 mockito = "1"
