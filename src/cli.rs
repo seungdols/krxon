@@ -1,6 +1,6 @@
 //! CLI entrypoint using clap derive macros.
 
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand};
 
 /// krxon - CLI tool and MCP server for KRX Open API.
 #[derive(Parser, Debug)]
