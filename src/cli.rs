@@ -140,6 +140,8 @@ pub struct StockFetchArgs {
 pub enum GenerateLanguage {
     /// Generate Python SDK client.
     Python(GenerateArgs),
+    /// Generate TypeScript SDK client.
+    Typescript(GenerateArgs),
 }
 
 /// Arguments for the generate subcommand.

@@ -10,6 +10,7 @@ use serde::Serialize;
 use tera::{Context, Tera};
 
 use super::spec::{load_spec, Spec};
+use super::to_pascal_case;
 
 /// Category names in the order they should appear in generated code.
 const CATEGORIES: &[&str] = &["index", "stock", "etp", "derivatives"];
@@ -109,23 +110,6 @@ pub fn generate(out_dir: &str) -> anyhow::Result<()> {
 
     eprintln!("Python SDK generated at: {}/krx/", out_dir);
     Ok(())
-}
-
-/// Converts a snake_case string to PascalCase.
-fn to_pascal_case(s: &str) -> String {
-    s.split('_')
-        .filter(|part| !part.is_empty())
-        .map(|part| {
-            let mut chars = part.chars();
-            match chars.next() {
-                Some(c) => {
-                    let upper: String = c.to_uppercase().collect();
-                    upper + chars.as_str()
-                }
-                None => String::new(),
-            }
-        })
-        .collect()
 }
 
 /// Derives a TypedDict class name from a Python method name.

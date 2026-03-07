@@ -46,6 +46,9 @@ async fn main() -> anyhow::Result<()> {
             GenerateLanguage::Python(args) => {
                 codegen::python::generate(&args.out)?;
             }
+            GenerateLanguage::Typescript(args) => {
+                codegen::typescript::generate(&args.out)?;
+            }
         },
         Commands::Serve => {
             eprintln!("serve command not yet implemented");
