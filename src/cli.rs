@@ -45,6 +45,11 @@ pub enum FetchResource {
         #[command(subcommand)]
         subcommand: EtpSubcommand,
     },
+    /// Fetch derivatives (futures/options) data.
+    Derivatives {
+        #[command(subcommand)]
+        subcommand: DerivativesSubcommand,
+    },
 }
 
 /// Index subcommands.
@@ -82,6 +87,27 @@ pub enum EtpSubcommand {
     Etf(EtpFetchArgs),
     /// ETN daily trading data.
     Etn(EtpFetchArgs),
+}
+
+/// Derivatives subcommands.
+#[derive(Subcommand, Debug)]
+pub enum DerivativesSubcommand {
+    /// Futures daily trading data.
+    Futures(FetchArgs),
+    /// KOSPI stock futures daily trading data.
+    #[command(name = "stock-futures-kospi")]
+    StockFuturesKospi(FetchArgs),
+    /// KOSDAQ stock futures daily trading data.
+    #[command(name = "stock-futures-kosdaq")]
+    StockFuturesKosdaq(FetchArgs),
+    /// Options daily trading data.
+    Options(FetchArgs),
+    /// KOSPI stock options daily trading data.
+    #[command(name = "stock-options-kospi")]
+    StockOptionsKospi(FetchArgs),
+    /// KOSDAQ stock options daily trading data.
+    #[command(name = "stock-options-kosdaq")]
+    StockOptionsKosdaq(FetchArgs),
 }
 
 /// Arguments for ETP fetch subcommands.

@@ -13,8 +13,15 @@ mod utils;
 
 use clap::Parser;
 
-use cli::{Cli, Commands, EtpSubcommand, FetchResource, IndexSubcommand, StockSubcommand};
+use cli::{
+    Cli, Commands, DerivativesSubcommand, EtpSubcommand, FetchResource, IndexSubcommand,
+    StockSubcommand,
+};
 use client::{resolve_api_key, KrxClient};
+use endpoints::derivatives::{
+    fetch_futures, fetch_options, fetch_stock_futures_kosdaq, fetch_stock_futures_kospi,
+    fetch_stock_options_kosdaq, fetch_stock_options_kospi,
+};
 use endpoints::etp::{fetch_etf_daily, fetch_etn_daily};
 use endpoints::index::{
     fetch_derivatives_index, fetch_kosdaq_index, fetch_kospi_index, fetch_krx_index,
@@ -38,6 +45,9 @@ async fn main() -> anyhow::Result<()> {
             }
             FetchResource::Etp { subcommand } => {
                 handle_fetch_etp(subcommand).await?;
+            }
+            FetchResource::Derivatives { subcommand } => {
+                handle_fetch_derivatives(subcommand).await?;
             }
         },
         Commands::Generate => {
@@ -327,6 +337,87 @@ fn print_etn_table(records: &[endpoints::etp::EtnRecord]) {
             "{:<12} {:<14} {:<24} {:>10} {:>10} {:>8} {:>14}",
             r.bas_dd, r.isu_cd, r.isu_nm, r.tdd_clsprc, r.cmpprevdd_prc, r.fluc_rt,
             r.indic_val_amt
+        );
+    }
+}
+
+/// Handles `fetch derivatives <subcommand>`.
+async fn handle_fetch_derivatives(subcommand: DerivativesSubcommand) -> anyhow::Result<()> {
+    let args = match &subcommand {
+        DerivativesSubcommand::Futures(args)
+        | DerivativesSubcommand::StockFuturesKospi(args)
+        | DerivativesSubcommand::StockFuturesKosdaq(args)
+        | DerivativesSubcommand::Options(args)
+        | DerivativesSubcommand::StockOptionsKospi(args)
+        | DerivativesSubcommand::StockOptionsKosdaq(args) => args,
+    };
+
+    // Validate date format.
+    if !utils::is_valid_date_format(&args.date) {
+        anyhow::bail!(
+            "Invalid date format: '{}'. Expected YYYYMMDD (e.g. 20250301)",
+            args.date
+        );
+    }
+
+    // Resolve API key.
+    let api_key = resolve_api_key(args.key.as_deref())?;
+    let client = KrxClient::new(&api_key)?;
+
+    // Call the appropriate endpoint.
+    let records = match &subcommand {
+        DerivativesSubcommand::Futures(_) => fetch_futures(&client, &args.date).await?,
+        DerivativesSubcommand::StockFuturesKospi(_) => {
+            fetch_stock_futures_kospi(&client, &args.date).await?
+        }
+        DerivativesSubcommand::StockFuturesKosdaq(_) => {
+            fetch_stock_futures_kosdaq(&client, &args.date).await?
+        }
+        DerivativesSubcommand::Options(_) => fetch_options(&client, &args.date).await?,
+        DerivativesSubcommand::StockOptionsKospi(_) => {
+            fetch_stock_options_kospi(&client, &args.date).await?
+        }
+        DerivativesSubcommand::StockOptionsKosdaq(_) => {
+            fetch_stock_options_kosdaq(&client, &args.date).await?
+        }
+    };
+
+    // Output results.
+    match args.output.as_str() {
+        "table" => print_derivatives_table(&records),
+        _ => {
+            let json = serde_json::to_string_pretty(&records)?;
+            println!("{}", json);
+        }
+    }
+
+    Ok(())
+}
+
+/// Prints derivatives records in a simple text table format.
+fn print_derivatives_table(records: &[endpoints::derivatives::DerivativesRecord]) {
+    if records.is_empty() {
+        println!("No data found.");
+        return;
+    }
+
+    println!(
+        "{:<12} {:<16} {:<28} {:>10} {:>10} {:>8} {:>14} {:>14}",
+        "Date", "Code", "Name", "Close", "Change", "Rate(%)", "Volume", "OpenInt"
+    );
+    println!("{}", "-".repeat(120));
+
+    for r in records {
+        println!(
+            "{:<12} {:<16} {:<28} {:>10} {:>10} {:>8} {:>14} {:>14}",
+            r.bas_dd,
+            r.isu_cd,
+            r.isu_nm,
+            r.tdd_clsprc,
+            r.cmpprevdd_prc,
+            r.fluc_rt,
+            r.acc_trdvol,
+            r.acc_opnint_qty
         );
     }
 }
