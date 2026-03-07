@@ -4,13 +4,13 @@ use std::process::Command;
 
 #[test]
 fn test_python_sdk_generates_and_imports() {
-    let temp_dir = std::env::temp_dir().join("krxon_smoke_test");
-    let _ = std::fs::remove_dir_all(&temp_dir);
+    let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let out_dir = temp_dir.path();
 
     // Generate Python SDK.
     let status = Command::new(env!("CARGO_BIN_EXE_krxon"))
         .args(["generate", "python", "--out"])
-        .arg(temp_dir.to_str().unwrap())
+        .arg(out_dir.to_str().unwrap())
         .status()
         .expect("Failed to run krxon generate");
     assert!(status.success(), "krxon generate python failed");
@@ -28,7 +28,7 @@ fn test_python_sdk_generates_and_imports() {
     ];
     for file in &expected_files {
         assert!(
-            temp_dir.join(file).exists(),
+            out_dir.join(file).exists(),
             "Expected file not found: {}",
             file
         );
@@ -36,7 +36,7 @@ fn test_python_sdk_generates_and_imports() {
 
     // Verify AUTO-GENERATED header in all files.
     for file in &expected_files {
-        let content = std::fs::read_to_string(temp_dir.join(file)).unwrap();
+        let content = std::fs::read_to_string(out_dir.join(file)).unwrap();
         assert!(
             content.starts_with("# AUTO-GENERATED"),
             "File {} missing AUTO-GENERATED header",
@@ -44,14 +44,13 @@ fn test_python_sdk_generates_and_imports() {
         );
     }
 
-    // Run Python import check (requires Python 3.9+).
+    // Run Python import check (requires Python 3.9+ with httpx installed).
+    // Pass path via env var to avoid quoting/escaping issues across platforms.
     let python_check = Command::new("python3")
+        .env("KRXON_SDK_PATH", out_dir)
         .args([
             "-c",
-            &format!(
-                "import sys; sys.path.insert(0, '{}'); from krx import KrxClient; print('OK')",
-                temp_dir.display()
-            ),
+            "import os, sys; sys.path.insert(0, os.environ['KRXON_SDK_PATH']); from krx import KrxClient; print('OK')",
         ])
         .output();
 
@@ -65,17 +64,23 @@ fn test_python_sdk_generates_and_imports() {
                     stdout
                 );
             } else {
-                // Python might not be installed — log but don't fail.
-                eprintln!(
-                    "Python smoke test skipped (python3 returned error): {}",
-                    String::from_utf8_lossy(&output.stderr)
-                );
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                // Only skip if httpx is not installed (dependency not available).
+                if stderr.contains("No module named") && stderr.contains("httpx") {
+                    eprintln!("Python smoke test skipped: httpx not installed");
+                } else {
+                    panic!(
+                        "Python import check failed with status {}.\nstdout: {}\nstderr: {}",
+                        output.status,
+                        String::from_utf8_lossy(&output.stdout),
+                        stderr,
+                    );
+                }
             }
         }
         Err(_) => {
             eprintln!("Python smoke test skipped: python3 not found");
         }
     }
-
-    let _ = std::fs::remove_dir_all(&temp_dir);
+    // temp_dir is automatically cleaned up on drop.
 }

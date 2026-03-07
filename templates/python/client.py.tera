@@ -21,7 +21,7 @@ class KrxClient(
     """KRX Open API client.
 
     Args:
-        api_key: API key for authentication (AUTH_KEY header).
+        api_key: API key for authentication ({{ notes.auth_header }} header).
         base_url: Base URL for the KRX API.
         timeout: Request timeout in seconds.
     """
@@ -38,19 +38,19 @@ class KrxClient(
         self.base_url = base_url.rstrip("/")
         self._client = httpx.Client(
             headers={
-                "AUTH_KEY": api_key,
-                "Content-Type": "application/json",
+                "{{ notes.auth_header }}": api_key,
+                "Content-Type": "{{ notes.content_type }}",
             },
             timeout=timeout,
         )
 
-    def _post(self, path: str, body: dict[str, Any]) -> list[dict[str, str]]:
-        """Send a POST request and extract OutBlock_1 from the response."""
+    def _post(self, path: str, body: dict[str, Any]) -> list[Any]:
+        """Send a POST request and extract {{ notes.response_root_key }} from the response."""
         url = f"{self.base_url}{path}"
         response = self._client.post(url, json=body)
         response.raise_for_status()
         data = response.json()
-        return data.get("OutBlock_1", [])
+        return data.get("{{ notes.response_root_key }}", [])
 
     def close(self) -> None:
         """Close the underlying HTTP client."""

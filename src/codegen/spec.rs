@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// Root of the spec file.
 #[derive(Debug, Deserialize)]
@@ -24,7 +24,7 @@ pub struct Spec {
 }
 
 /// Global notes / metadata from the spec.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SpecNotes {
     /// HTTP method (always POST).
     pub http_method: String,
@@ -111,8 +111,10 @@ pub struct ResponseFieldDef {
 ///
 /// Returns an error if the file cannot be read or if YAML deserialization fails.
 pub fn load_spec(path: &Path) -> anyhow::Result<Spec> {
-    let content = std::fs::read_to_string(path)?;
-    let spec: Spec = serde_yaml::from_str(&content)?;
+    let content = std::fs::read_to_string(path)
+        .map_err(|e| anyhow::anyhow!("Failed to read spec file '{}': {}", path.display(), e))?;
+    let spec: Spec = serde_yaml::from_str(&content)
+        .map_err(|e| anyhow::anyhow!("Failed to parse spec file '{}': {}", path.display(), e))?;
     Ok(spec)
 }
 

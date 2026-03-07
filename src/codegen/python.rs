@@ -200,6 +200,7 @@ fn render_client(tera: &Tera, spec: &Spec, base: &Path) -> anyhow::Result<()> {
     let mut ctx = Context::new();
     ctx.insert("base_url", &spec.base_url);
     ctx.insert("categories", &categories);
+    ctx.insert("notes", &spec.notes);
     let rendered = tera.render("client.py.tera", &ctx)?;
     fs::write(base.join("client.py"), rendered)?;
     Ok(())
@@ -300,31 +301,30 @@ mod tests {
 
     #[test]
     fn test_generate_creates_files() {
-        let temp_dir = std::env::temp_dir().join("krxon_test_python_gen");
-        let _ = std::fs::remove_dir_all(&temp_dir);
+        let temp_dir = tempfile::tempdir().unwrap();
+        let out_dir = temp_dir.path();
 
-        generate(temp_dir.to_str().unwrap()).unwrap();
+        generate(out_dir.to_str().unwrap()).unwrap();
 
-        assert!(temp_dir.join("krx/__init__.py").exists());
-        assert!(temp_dir.join("krx/client.py").exists());
-        assert!(temp_dir.join("krx/types.py").exists());
-        assert!(temp_dir.join("krx/endpoints/__init__.py").exists());
-        assert!(temp_dir.join("krx/endpoints/index.py").exists());
-        assert!(temp_dir.join("krx/endpoints/stock.py").exists());
-        assert!(temp_dir.join("krx/endpoints/etp.py").exists());
-        assert!(temp_dir.join("krx/endpoints/derivatives.py").exists());
+        assert!(out_dir.join("krx/__init__.py").exists());
+        assert!(out_dir.join("krx/client.py").exists());
+        assert!(out_dir.join("krx/types.py").exists());
+        assert!(out_dir.join("krx/endpoints/__init__.py").exists());
+        assert!(out_dir.join("krx/endpoints/index.py").exists());
+        assert!(out_dir.join("krx/endpoints/stock.py").exists());
+        assert!(out_dir.join("krx/endpoints/etp.py").exists());
+        assert!(out_dir.join("krx/endpoints/derivatives.py").exists());
 
         // Verify AUTO-GENERATED header.
-        let client = std::fs::read_to_string(temp_dir.join("krx/client.py")).unwrap();
+        let client = std::fs::read_to_string(out_dir.join("krx/client.py")).unwrap();
         assert!(client.starts_with("# AUTO-GENERATED"));
 
-        let types = std::fs::read_to_string(temp_dir.join("krx/types.py")).unwrap();
+        let types = std::fs::read_to_string(out_dir.join("krx/types.py")).unwrap();
         assert!(types.starts_with("# AUTO-GENERATED"));
 
-        let index = std::fs::read_to_string(temp_dir.join("krx/endpoints/index.py")).unwrap();
+        let index = std::fs::read_to_string(out_dir.join("krx/endpoints/index.py")).unwrap();
         assert!(index.starts_with("# AUTO-GENERATED"));
         assert!(index.contains("def get_krx_index_daily"));
-
-        let _ = std::fs::remove_dir_all(&temp_dir);
+        // temp_dir is automatically cleaned up on drop.
     }
 }

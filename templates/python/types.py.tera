@@ -15,8 +15,7 @@ from typing import TypedDict
 class {{ type_def.class_name }}(TypedDict):
     """{{ type_def.description }}"""
 {% for field in type_def.fields %}
-    {{ field.name }}: str
-    """{{ field.description }}"""
+    {{ field.name }}: str  # {{ field.description }}
 {% endfor %}
 
 {% endfor %}
