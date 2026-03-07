@@ -23,7 +23,23 @@ pub enum KrxError {
     #[error("API key not found. Provide via --key, KRX_API_KEY env var, or ~/.krxon/config.toml")]
     MissingApiKey,
 
+    /// API key contains invalid characters for HTTP header.
+    #[error("Invalid API key: contains characters not allowed in HTTP headers")]
+    InvalidApiKey,
+
     /// Deserialization failed.
     #[error("Failed to parse response: {0}")]
     ParseError(String),
+
+    /// Authentication failed (HTTP 401).
+    #[error("Authentication failed (HTTP 401): Invalid or expired API key")]
+    Unauthorized,
+
+    /// Access forbidden (HTTP 403).
+    #[error("Access forbidden (HTTP 403): Endpoint requires service subscription")]
+    Forbidden,
+
+    /// Rate limit exceeded (HTTP 429).
+    #[error("Rate limit exceeded (HTTP 429): Daily call limit reached")]
+    RateLimited,
 }
