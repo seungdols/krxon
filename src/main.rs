@@ -12,8 +12,9 @@ mod utils;
 
 use clap::Parser;
 
-use cli::{Cli, Commands, FetchResource, IndexSubcommand, StockSubcommand};
+use cli::{Cli, Commands, EtpSubcommand, FetchResource, IndexSubcommand, StockSubcommand};
 use client::{resolve_api_key, KrxClient};
+use endpoints::etp::{fetch_etf_daily, fetch_etn_daily};
 use endpoints::index::{
     fetch_derivatives_index, fetch_kosdaq_index, fetch_kospi_index, fetch_krx_index,
 };
@@ -33,6 +34,9 @@ async fn main() -> anyhow::Result<()> {
             }
             FetchResource::Stock { subcommand } => {
                 handle_fetch_stock(subcommand).await?;
+            }
+            FetchResource::Etp { subcommand } => {
+                handle_fetch_etp(subcommand).await?;
             }
         },
         Commands::Generate => {
@@ -224,6 +228,104 @@ fn print_stock_info_table(records: &[endpoints::stock::StockInfoRecord]) {
         println!(
             "{:<14} {:<8} {:<20} {:<20} {:<10} {:>10}",
             r.isu_cd, r.isu_srt_cd, r.isu_nm, r.isu_eng_nm, r.mkt_tp_nm, r.parval
+        );
+    }
+}
+
+/// Minimum date for ETN data availability.
+const ETN_MIN_DATE: &str = "20141117";
+
+/// Handles `fetch etp <subcommand>`.
+async fn handle_fetch_etp(subcommand: EtpSubcommand) -> anyhow::Result<()> {
+    let args = match &subcommand {
+        EtpSubcommand::Etf(args) | EtpSubcommand::Etn(args) => args,
+    };
+
+    // Validate date format.
+    if !utils::is_valid_date_format(&args.date) {
+        anyhow::bail!(
+            "Invalid date format: '{}'. Expected YYYYMMDD (e.g. 20250301)",
+            args.date
+        );
+    }
+
+    // Warn if ETN date is before data availability.
+    if matches!(&subcommand, EtpSubcommand::Etn(_)) && args.date.as_str() < ETN_MIN_DATE {
+        eprintln!(
+            "Warning: ETN data is available from 2014-11-17. Results may be empty."
+        );
+    }
+
+    // Resolve API key.
+    let api_key = resolve_api_key(args.key.as_deref())?;
+    let client = KrxClient::new(&api_key)?;
+
+    // Call the appropriate endpoint and output results.
+    match &subcommand {
+        EtpSubcommand::Etf(_) => {
+            let mut records = fetch_etf_daily(&client, &args.date).await?;
+            if let Some(isin) = &args.isin {
+                records.retain(|r| r.isu_cd == *isin);
+            }
+            match args.output.as_str() {
+                "table" => print_etf_table(&records),
+                _ => println!("{}", serde_json::to_string_pretty(&records)?),
+            }
+        }
+        EtpSubcommand::Etn(_) => {
+            let mut records = fetch_etn_daily(&client, &args.date).await?;
+            if let Some(isin) = &args.isin {
+                records.retain(|r| r.isu_cd == *isin);
+            }
+            match args.output.as_str() {
+                "table" => print_etn_table(&records),
+                _ => println!("{}", serde_json::to_string_pretty(&records)?),
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Prints ETF records in a simple text table format.
+fn print_etf_table(records: &[endpoints::etp::EtfRecord]) {
+    if records.is_empty() {
+        println!("No data found.");
+        return;
+    }
+
+    println!(
+        "{:<12} {:<14} {:<24} {:>10} {:>10} {:>8} {:>14}",
+        "Date", "Code", "Name", "Close", "Change", "Rate(%)", "NAV"
+    );
+    println!("{}", "-".repeat(100));
+
+    for r in records {
+        println!(
+            "{:<12} {:<14} {:<24} {:>10} {:>10} {:>8} {:>14}",
+            r.bas_dd, r.isu_cd, r.isu_nm, r.tdd_clsprc, r.cmpprevdd_prc, r.fluc_rt, r.nav
+        );
+    }
+}
+
+/// Prints ETN records in a simple text table format.
+fn print_etn_table(records: &[endpoints::etp::EtnRecord]) {
+    if records.is_empty() {
+        println!("No data found.");
+        return;
+    }
+
+    println!(
+        "{:<12} {:<14} {:<24} {:>10} {:>10} {:>8} {:>14}",
+        "Date", "Code", "Name", "Close", "Change", "Rate(%)", "IndicVal"
+    );
+    println!("{}", "-".repeat(100));
+
+    for r in records {
+        println!(
+            "{:<12} {:<14} {:<24} {:>10} {:>10} {:>8} {:>14}",
+            r.bas_dd, r.isu_cd, r.isu_nm, r.tdd_clsprc, r.cmpprevdd_prc, r.fluc_rt,
+            r.indic_val_amt
         );
     }
 }
