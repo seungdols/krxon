@@ -1,8 +1,8 @@
 //! Output formatters for fetch results.
 //!
-//! Converts `Vec<serde_json::Value>` (rows from KRX API) into
-//! CSV or human-readable table format.
+//! Provides CSV and `comfy-table` based table formatting for KRX API data.
 
+use comfy_table::{ContentArrangement, Table};
 use serde_json::Value;
 
 /// Formats data rows as CSV with a header row.
@@ -38,7 +38,7 @@ pub fn format_as_csv(data: &[Value]) -> String {
     lines.join("\n")
 }
 
-/// Formats data rows as a fixed-width text table.
+/// Formats data rows as a `comfy-table` text table.
 ///
 /// Auto-calculates column widths for alignment.
 /// Returns an empty string if `data` is empty.
@@ -49,48 +49,47 @@ pub fn format_as_table(data: &[Value]) -> String {
 
     let headers = extract_headers(data);
 
-    // Calculate column widths (max of header and all values)
-    let mut widths: Vec<usize> = headers.iter().map(|h| h.len()).collect();
+    let mut table = Table::new();
+    table.set_content_arrangement(ContentArrangement::Dynamic);
+    table.set_header(&headers);
+
     for row in data {
-        for (i, header) in headers.iter().enumerate() {
-            let val = row
-                .get(header.as_str())
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
-            if val.len() > widths[i] {
-                widths[i] = val.len();
-            }
-        }
-    }
-
-    let mut lines = Vec::with_capacity(data.len() + 3);
-
-    // Header
-    let header_line: Vec<String> = headers
-        .iter()
-        .enumerate()
-        .map(|(i, h)| format!("{:<width$}", h, width = widths[i]))
-        .collect();
-    lines.push(header_line.join("  "));
-
-    // Separator
-    let sep: Vec<String> = widths.iter().map(|&w| "-".repeat(w)).collect();
-    lines.push(sep.join("  "));
-
-    // Rows
-    for row in data {
-        let row_line: Vec<String> = headers
+        let cells: Vec<String> = headers
             .iter()
-            .enumerate()
-            .map(|(i, h)| {
-                let val = row.get(h.as_str()).and_then(|v| v.as_str()).unwrap_or("");
-                format!("{:<width$}", val, width = widths[i])
+            .map(|h| {
+                row.get(h.as_str())
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string()
             })
             .collect();
-        lines.push(row_line.join("  "));
+        table.add_row(cells);
     }
 
-    lines.join("\n")
+    table.to_string()
+}
+
+/// Builds a `comfy-table` from explicit headers and typed record rows.
+///
+/// Each record is converted to a row via the `to_row` closure.
+/// Returns the formatted table string, or an empty string if `records` is empty.
+pub fn format_records_table<T, F>(headers: &[&str], records: &[T], to_row: F) -> String
+where
+    F: Fn(&T) -> Vec<String>,
+{
+    if records.is_empty() {
+        return String::new();
+    }
+
+    let mut table = Table::new();
+    table.set_content_arrangement(ContentArrangement::Dynamic);
+    table.set_header(headers);
+
+    for record in records {
+        table.add_row(to_row(record));
+    }
+
+    table.to_string()
 }
 
 /// Extracts ordered column headers from the first data row.
@@ -129,10 +128,8 @@ mod tests {
         let lines: Vec<&str> = csv.lines().collect();
 
         assert_eq!(lines.len(), 2);
-        // Header should contain both keys
         assert!(lines[0].contains("BAS_DD"));
         assert!(lines[0].contains("IDX_NM"));
-        // Data should contain values
         assert!(lines[1].contains("20250301"));
         assert!(lines[1].contains("KOSPI"));
     }
@@ -150,25 +147,47 @@ mod tests {
     }
 
     #[test]
-    fn test_format_as_table_has_header_and_separator() {
+    fn test_format_as_table_has_header_and_data() {
         let data = vec![json!({"BAS_DD": "20250301", "IDX_NM": "KOSPI"})];
         let table = format_as_table(&data);
-        let lines: Vec<&str> = table.lines().collect();
 
-        assert_eq!(lines.len(), 3); // header + separator + 1 data row
-        assert!(lines[1].contains("---")); // separator line
+        assert!(table.contains("BAS_DD"));
+        assert!(table.contains("IDX_NM"));
+        assert!(table.contains("20250301"));
+        assert!(table.contains("KOSPI"));
     }
 
     #[test]
-    fn test_format_as_table_column_alignment() {
+    fn test_format_as_table_multiple_rows() {
         let data = vec![
             json!({"NAME": "A", "VALUE": "12345"}),
             json!({"NAME": "BB", "VALUE": "1"}),
         ];
         let table = format_as_table(&data);
-        let lines: Vec<&str> = table.lines().collect();
 
-        assert_eq!(lines.len(), 4); // header + separator + 2 rows
+        assert!(table.contains("A"));
+        assert!(table.contains("BB"));
+        assert!(table.contains("12345"));
+    }
+
+    #[test]
+    fn test_format_records_table_empty() {
+        let result = format_records_table::<String, _>(&["A", "B"], &[], |_| vec![]);
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_format_records_table_with_data() {
+        let data = vec![("Samsung", "80000"), ("LG", "50000")];
+        let result = format_records_table(&["Name", "Price"], &data, |r| {
+            vec![r.0.to_string(), r.1.to_string()]
+        });
+
+        assert!(result.contains("Name"));
+        assert!(result.contains("Price"));
+        assert!(result.contains("Samsung"));
+        assert!(result.contains("80000"));
+        assert!(result.contains("LG"));
     }
 
     #[test]

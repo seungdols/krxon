@@ -30,7 +30,7 @@ impl KrxClient {
     /// # Errors
     ///
     /// - [`KrxError::InvalidApiKey`] if the API key contains invalid HTTP header characters
-    /// - [`KrxError::HttpError`] if the HTTP client fails to initialize
+    /// - [`KrxError::Http`] if the HTTP client fails to initialize
     pub fn new(api_key: &str) -> Result<Self, KrxError> {
         let mut default_headers = HeaderMap::new();
         default_headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
@@ -89,9 +89,9 @@ impl KrxClient {
     /// # Errors
     ///
     /// - [`KrxError::Unauthorized`] if the API key is invalid (HTTP 401)
-    /// - [`KrxError::Forbidden`] if the endpoint requires subscription (HTTP 403)
-    /// - [`KrxError::RateLimited`] if the daily call limit is exceeded (HTTP 429)
-    /// - [`KrxError::ApiError`] for other HTTP failures
+    /// - [`KrxError::ServiceNotSubscribed`] if the endpoint requires subscription (HTTP 403)
+    /// - [`KrxError::RateLimitExceeded`] if the daily call limit is exceeded (HTTP 429)
+    /// - [`KrxError::ApiError`] for other unexpected HTTP status codes
     /// - [`KrxError::ParseError`] if `OutBlock_1` is missing or not an array
     pub async fn post(&self, path: &str, body: Value) -> Result<Vec<Value>, KrxError> {
         let url = self.build_url(path);
@@ -102,8 +102,10 @@ impl KrxClient {
         if !status.is_success() {
             return match status.as_u16() {
                 401 => Err(KrxError::Unauthorized),
-                403 => Err(KrxError::Forbidden),
-                429 => Err(KrxError::RateLimited),
+                403 => Err(KrxError::ServiceNotSubscribed {
+                    service: path.to_string(),
+                }),
+                429 => Err(KrxError::RateLimitExceeded),
                 _ => {
                     let body_text = match response.text().await {
                         Ok(text) => text,
@@ -310,7 +312,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_post_403_returns_forbidden() {
+    async fn test_post_403_returns_service_not_subscribed() {
         let mut server = Server::new_async().await;
         let mock = server
             .mock("POST", "/some/endpoint")
@@ -322,12 +324,15 @@ mod tests {
         let result = client.post("/some/endpoint", json!({})).await;
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), KrxError::Forbidden));
+        assert!(matches!(
+            result.unwrap_err(),
+            KrxError::ServiceNotSubscribed { .. }
+        ));
         mock.assert_async().await;
     }
 
     #[tokio::test]
-    async fn test_post_429_returns_rate_limited() {
+    async fn test_post_429_returns_rate_limit_exceeded() {
         let mut server = Server::new_async().await;
         let mock = server
             .mock("POST", "/idx/krx_dd_trd")
@@ -339,7 +344,7 @@ mod tests {
         let result = client.post("/idx/krx_dd_trd", json!({})).await;
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), KrxError::RateLimited));
+        assert!(matches!(result.unwrap_err(), KrxError::RateLimitExceeded));
         mock.assert_async().await;
     }
 
