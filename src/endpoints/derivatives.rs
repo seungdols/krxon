@@ -15,6 +15,10 @@ use crate::client::KrxClient;
 use crate::error::KrxError;
 
 /// Futures daily trading record returned by KRX API.
+///
+/// Used for `futures`, `stock-futures-kospi`, and `stock-futures-kosdaq` endpoints.
+/// Fields `tdd_opnprc`, `tdd_hgprc`, and `tdd_lwprc` are `Option` because
+/// the stock futures endpoints do not include them.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct FuturesRecord {
     /// Base date (YYYYMMDD).
@@ -41,69 +45,17 @@ pub struct FuturesRecord {
     #[serde(rename = "TDD_CLSPRC")]
     pub tdd_clsprc: String,
 
-    /// Opening price.
-    #[serde(rename = "TDD_OPNPRC")]
-    pub tdd_opnprc: String,
+    /// Opening price (futures daily only).
+    #[serde(rename = "TDD_OPNPRC", default)]
+    pub tdd_opnprc: Option<String>,
 
-    /// High price.
-    #[serde(rename = "TDD_HGPRC")]
-    pub tdd_hgprc: String,
+    /// High price (futures daily only).
+    #[serde(rename = "TDD_HGPRC", default)]
+    pub tdd_hgprc: Option<String>,
 
-    /// Low price.
-    #[serde(rename = "TDD_LWPRC")]
-    pub tdd_lwprc: String,
-
-    /// Settlement price.
-    #[serde(rename = "SETL_PRC")]
-    pub setl_prc: String,
-
-    /// Spot price.
-    #[serde(rename = "SPOT_PRC")]
-    pub spot_prc: String,
-
-    /// Change compared to previous day.
-    #[serde(rename = "CMPPREVDD_PRC")]
-    pub cmpprevdd_prc: String,
-
-    /// Accumulated trading volume.
-    #[serde(rename = "ACC_TRDVOL")]
-    pub acc_trdvol: String,
-
-    /// Accumulated trading value.
-    #[serde(rename = "ACC_TRDVAL")]
-    pub acc_trdval: String,
-
-    /// Accumulated open interest quantity.
-    #[serde(rename = "ACC_OPNINT_QTY")]
-    pub acc_opnint_qty: String,
-}
-
-/// Stock futures daily trading record (KOSPI/KOSDAQ).
-#[derive(Debug, Deserialize, Serialize)]
-pub struct StockFuturesRecord {
-    /// Base date (YYYYMMDD).
-    #[serde(rename = "BAS_DD")]
-    pub bas_dd: String,
-
-    /// Issue code.
-    #[serde(rename = "ISU_CD")]
-    pub isu_cd: String,
-
-    /// Issue name.
-    #[serde(rename = "ISU_NM")]
-    pub isu_nm: String,
-
-    /// Product name.
-    #[serde(rename = "PROD_NM")]
-    pub prod_nm: String,
-
-    /// Market name.
-    #[serde(rename = "MKT_NM")]
-    pub mkt_nm: String,
-
-    /// Closing price.
-    #[serde(rename = "TDD_CLSPRC")]
-    pub tdd_clsprc: String,
+    /// Low price (futures daily only).
+    #[serde(rename = "TDD_LWPRC", default)]
+    pub tdd_lwprc: Option<String>,
 
     /// Settlement price.
     #[serde(rename = "SETL_PRC")]
@@ -125,12 +77,15 @@ pub struct StockFuturesRecord {
     #[serde(rename = "ACC_TRDVAL")]
     pub acc_trdval: String,
 
-    /// Accumulated open interest quantity.
+    /// Open interest quantity.
     #[serde(rename = "ACC_OPNINT_QTY")]
     pub acc_opnint_qty: String,
 }
 
-/// Options daily trading record (options, stock options KOSPI/KOSDAQ).
+/// Options daily trading record returned by KRX API.
+///
+/// Used for `options`, `stock-options-kospi`, and `stock-options-kosdaq` endpoints.
+/// All three endpoints share the same response field structure.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct OptionsRecord {
     /// Base date (YYYYMMDD).
@@ -181,7 +136,7 @@ pub struct OptionsRecord {
     #[serde(rename = "ACC_TRDVAL")]
     pub acc_trdval: String,
 
-    /// Accumulated open interest quantity.
+    /// Open interest quantity.
     #[serde(rename = "ACC_OPNINT_QTY")]
     pub acc_opnint_qty: String,
 
@@ -193,10 +148,6 @@ pub struct OptionsRecord {
     #[serde(rename = "NXTDD_BAS_PRC")]
     pub nxtdd_bas_prc: String,
 }
-
-// ---------------------------------------------------------------------------
-// Public fetch functions
-// ---------------------------------------------------------------------------
 
 /// Fetches futures daily trading data.
 pub async fn fetch_futures_daily(
@@ -210,7 +161,7 @@ pub async fn fetch_futures_daily(
 pub async fn fetch_stock_futures_kospi_daily(
     client: &KrxClient,
     date: &str,
-) -> Result<Vec<StockFuturesRecord>, KrxError> {
+) -> Result<Vec<FuturesRecord>, KrxError> {
     fetch_derivatives(client, "/drv/stk_fut_bydd_trd", date).await
 }
 
@@ -218,7 +169,7 @@ pub async fn fetch_stock_futures_kospi_daily(
 pub async fn fetch_stock_futures_kosdaq_daily(
     client: &KrxClient,
     date: &str,
-) -> Result<Vec<StockFuturesRecord>, KrxError> {
+) -> Result<Vec<FuturesRecord>, KrxError> {
     fetch_derivatives(client, "/drv/ksq_fut_bydd_trd", date).await
 }
 
@@ -245,10 +196,6 @@ pub async fn fetch_stock_options_kosdaq_daily(
 ) -> Result<Vec<OptionsRecord>, KrxError> {
     fetch_derivatives(client, "/drv/ksq_opt_bydd_trd", date).await
 }
-
-// ---------------------------------------------------------------------------
-// Internal helper
-// ---------------------------------------------------------------------------
 
 /// Internal helper: calls the given derivatives endpoint path with the given date.
 async fn fetch_derivatives<T: DeserializeOwned>(
@@ -279,57 +226,66 @@ mod tests {
             "ISU_NM": "KOSPI200 F 2503",
             "PROD_NM": "코스피200선물",
             "MKT_NM": "파생",
-            "TDD_CLSPRC": "350.25",
-            "TDD_OPNPRC": "348.00",
-            "TDD_HGPRC": "351.50",
-            "TDD_LWPRC": "347.80",
-            "SETL_PRC": "350.20",
-            "SPOT_PRC": "350.00",
-            "CMPPREVDD_PRC": "2.25",
+            "TDD_CLSPRC": "350.00",
+            "TDD_OPNPRC": "348.50",
+            "TDD_HGPRC": "351.00",
+            "TDD_LWPRC": "347.00",
+            "SETL_PRC": "350.00",
+            "SPOT_PRC": "349.80",
+            "CMPPREVDD_PRC": "2.50",
             "ACC_TRDVOL": "150,000",
             "ACC_TRDVAL": "52,500,000,000",
-            "ACC_OPNINT_QTY": "280,000"
+            "ACC_OPNINT_QTY": "250,000"
         });
 
         let record: FuturesRecord = serde_json::from_value(json).unwrap();
         assert_eq!(record.bas_dd, "20250301");
+        assert_eq!(record.isu_cd, "KR4101V30009");
         assert_eq!(record.isu_nm, "KOSPI200 F 2503");
-        assert_eq!(record.tdd_clsprc, "350.25");
-        assert_eq!(record.tdd_opnprc, "348.00");
-        assert_eq!(record.setl_prc, "350.20");
-        assert_eq!(record.acc_opnint_qty, "280,000");
+        assert_eq!(record.prod_nm, "코스피200선물");
+        assert_eq!(record.tdd_clsprc, "350.00");
+        assert_eq!(record.tdd_opnprc, Some("348.50".to_string()));
+        assert_eq!(record.tdd_hgprc, Some("351.00".to_string()));
+        assert_eq!(record.tdd_lwprc, Some("347.00".to_string()));
+        assert_eq!(record.setl_prc, "350.00");
+        assert_eq!(record.spot_prc, "349.80");
+        assert_eq!(record.acc_opnint_qty, "250,000");
     }
 
     #[test]
     fn test_deserialize_stock_futures_record() {
         let json = serde_json::json!({
             "BAS_DD": "20250301",
-            "ISU_CD": "KR4005930009",
+            "ISU_CD": "KR4005930008",
             "ISU_NM": "삼성전자 F 2503",
-            "PROD_NM": "주식선물",
-            "MKT_NM": "파생",
-            "TDD_CLSPRC": "72,000",
-            "SETL_PRC": "71,950",
-            "SPOT_PRC": "72,100",
-            "CMPPREVDD_PRC": "-500",
-            "ACC_TRDVOL": "5,000",
-            "ACC_TRDVAL": "360,000,000",
-            "ACC_OPNINT_QTY": "12,000"
+            "PROD_NM": "삼성전자선물",
+            "MKT_NM": "주식선물",
+            "TDD_CLSPRC": "55,000",
+            "SETL_PRC": "55,000",
+            "SPOT_PRC": "54,800",
+            "CMPPREVDD_PRC": "500",
+            "ACC_TRDVOL": "10,000",
+            "ACC_TRDVAL": "550,000,000",
+            "ACC_OPNINT_QTY": "20,000"
         });
 
-        let record: StockFuturesRecord = serde_json::from_value(json).unwrap();
+        let record: FuturesRecord = serde_json::from_value(json).unwrap();
         assert_eq!(record.bas_dd, "20250301");
+        assert_eq!(record.isu_cd, "KR4005930008");
         assert_eq!(record.isu_nm, "삼성전자 F 2503");
-        assert_eq!(record.tdd_clsprc, "72,000");
-        assert_eq!(record.setl_prc, "71,950");
+        assert!(record.tdd_opnprc.is_none());
+        assert!(record.tdd_hgprc.is_none());
+        assert!(record.tdd_lwprc.is_none());
+        assert_eq!(record.setl_prc, "55,000");
+        assert_eq!(record.acc_opnint_qty, "20,000");
     }
 
     #[test]
     fn test_deserialize_options_record() {
         let json = serde_json::json!({
             "BAS_DD": "20250301",
-            "ISU_CD": "KR4201V3B002",
-            "ISU_NM": "KOSPI200 C 2503 350",
+            "ISU_CD": "KR4201V3A002",
+            "ISU_NM": "KOSPI200 콜옵션 2503 350",
             "PROD_NM": "코스피200옵션",
             "RGHT_TP_NM": "콜",
             "TDD_CLSPRC": "5.50",
@@ -337,19 +293,21 @@ mod tests {
             "TDD_HGPRC": "6.00",
             "TDD_LWPRC": "4.80",
             "CMPPREVDD_PRC": "0.50",
-            "ACC_TRDVOL": "20,000",
-            "ACC_TRDVAL": "1,100,000,000",
-            "ACC_OPNINT_QTY": "50,000",
-            "IMP_VOLT": "18.50",
-            "NXTDD_BAS_PRC": "5.55"
+            "ACC_TRDVOL": "50,000",
+            "ACC_TRDVAL": "2,750,000,000",
+            "ACC_OPNINT_QTY": "100,000",
+            "IMP_VOLT": "15.50",
+            "NXTDD_BAS_PRC": "5.60"
         });
 
         let record: OptionsRecord = serde_json::from_value(json).unwrap();
         assert_eq!(record.bas_dd, "20250301");
-        assert_eq!(record.isu_nm, "KOSPI200 C 2503 350");
+        assert_eq!(record.isu_cd, "KR4201V3A002");
+        assert_eq!(record.isu_nm, "KOSPI200 콜옵션 2503 350");
         assert_eq!(record.rght_tp_nm, "콜");
         assert_eq!(record.tdd_clsprc, "5.50");
-        assert_eq!(record.imp_volt, "18.50");
-        assert_eq!(record.nxtdd_bas_prc, "5.55");
+        assert_eq!(record.imp_volt, "15.50");
+        assert_eq!(record.nxtdd_bas_prc, "5.60");
+        assert_eq!(record.acc_opnint_qty, "100,000");
     }
 }

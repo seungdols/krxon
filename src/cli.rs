@@ -81,15 +81,6 @@ pub enum StockSubcommand {
     KosdaqInfo(StockFetchArgs),
 }
 
-/// ETP subcommands.
-#[derive(Subcommand, Debug)]
-pub enum EtpSubcommand {
-    /// ETF daily trading data.
-    Etf(EtpFetchArgs),
-    /// ETN daily trading data.
-    Etn(EtpFetchArgs),
-}
-
 /// Derivatives subcommands.
 #[derive(Subcommand, Debug)]
 pub enum DerivativesSubcommand {
@@ -109,6 +100,15 @@ pub enum DerivativesSubcommand {
     /// KOSDAQ stock options daily trading data.
     #[command(name = "stock-options-kosdaq")]
     StockOptionsKosdaq(FetchArgs),
+}
+
+/// ETP subcommands.
+#[derive(Subcommand, Debug)]
+pub enum EtpSubcommand {
+    /// ETF daily trading data.
+    Etf(EtpFetchArgs),
+    /// ETN daily trading data.
+    Etn(EtpFetchArgs),
 }
 
 /// Arguments for ETP fetch subcommands.
