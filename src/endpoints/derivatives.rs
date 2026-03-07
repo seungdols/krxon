@@ -40,20 +40,20 @@ pub struct DerivativesRecord {
     pub cmpprevdd_prc: String,
 
     /// Fluctuation rate (%).
-    #[serde(rename = "FLUC_RT")]
-    pub fluc_rt: String,
+    #[serde(rename = "FLUC_RT", default)]
+    pub fluc_rt: Option<String>,
 
     /// Opening price.
-    #[serde(rename = "TDD_OPNPRC")]
-    pub tdd_opnprc: String,
+    #[serde(rename = "TDD_OPNPRC", default)]
+    pub tdd_opnprc: Option<String>,
 
     /// High price.
-    #[serde(rename = "TDD_HGPRC")]
-    pub tdd_hgprc: String,
+    #[serde(rename = "TDD_HGPRC", default)]
+    pub tdd_hgprc: Option<String>,
 
     /// Low price.
-    #[serde(rename = "TDD_LWPRC")]
-    pub tdd_lwprc: String,
+    #[serde(rename = "TDD_LWPRC", default)]
+    pub tdd_lwprc: Option<String>,
 
     /// Accumulated trading volume.
     #[serde(rename = "ACC_TRDVOL")]
@@ -160,9 +160,32 @@ mod tests {
         assert_eq!(record.isu_nm, "KOSPI200 F 202503");
         assert_eq!(record.tdd_clsprc, "350.00");
         assert_eq!(record.cmpprevdd_prc, "2.50");
-        assert_eq!(record.fluc_rt, "0.72");
+        assert_eq!(record.fluc_rt, Some("0.72".to_string()));
+        assert_eq!(record.tdd_opnprc, Some("348.00".to_string()));
         assert_eq!(record.acc_trdvol, "250,000");
         assert_eq!(record.acc_opnint_qty, "150,000");
+    }
+
+    #[test]
+    fn test_deserialize_without_optional_fields() {
+        let json = serde_json::json!({
+            "BAS_DD": "20250301",
+            "ISU_CD": "KR4101V30009",
+            "ISU_NM": "삼성전자 선물 202503",
+            "TDD_CLSPRC": "80,000",
+            "CMPPREVDD_PRC": "1,000",
+            "ACC_TRDVOL": "5,000",
+            "ACC_TRDVAL": "400,000,000",
+            "ACC_OPNINT_QTY": "3,000"
+        });
+
+        let record: DerivativesRecord = serde_json::from_value(json).unwrap();
+        assert_eq!(record.bas_dd, "20250301");
+        assert!(record.fluc_rt.is_none());
+        assert!(record.tdd_opnprc.is_none());
+        assert!(record.tdd_hgprc.is_none());
+        assert!(record.tdd_lwprc.is_none());
+        assert_eq!(record.acc_opnint_qty, "3,000");
     }
 
     #[test]

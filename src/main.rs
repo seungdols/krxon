@@ -415,7 +415,7 @@ fn print_derivatives_table(records: &[endpoints::derivatives::DerivativesRecord]
             r.isu_nm,
             r.tdd_clsprc,
             r.cmpprevdd_prc,
-            r.fluc_rt,
+            r.fluc_rt.as_deref().unwrap_or("-"),
             r.acc_trdvol,
             r.acc_opnint_qty
         );
