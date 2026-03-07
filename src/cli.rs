@@ -17,9 +17,51 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Fetch market data from the KRX API.
-    Fetch,
+    Fetch {
+        #[command(subcommand)]
+        resource: FetchResource,
+    },
     /// Generate SDK clients (Python, TypeScript).
     Generate,
     /// Run as an MCP server.
     Serve,
+}
+
+/// Fetch resource categories.
+#[derive(Subcommand, Debug)]
+pub enum FetchResource {
+    /// Fetch index (KRX/KOSPI/KOSDAQ/Derivatives) data.
+    Index {
+        #[command(subcommand)]
+        subcommand: IndexSubcommand,
+    },
+}
+
+/// Index subcommands.
+#[derive(Subcommand, Debug)]
+pub enum IndexSubcommand {
+    /// KRX composite index daily data.
+    Krx(FetchArgs),
+    /// KOSPI index daily data.
+    Kospi(FetchArgs),
+    /// KOSDAQ index daily data.
+    Kosdaq(FetchArgs),
+    /// Derivatives index daily data.
+    Derivatives(FetchArgs),
+}
+
+/// Common arguments for all fetch subcommands.
+#[derive(clap::Args, Debug)]
+pub struct FetchArgs {
+    /// Base date in YYYYMMDD format.
+    #[arg(long)]
+    pub date: String,
+
+    /// API key (overrides KRX_API_KEY env var).
+    #[arg(long)]
+    pub key: Option<String>,
+
+    /// Output format: json or table.
+    #[arg(long, default_value = "json")]
+    pub output: String,
 }
