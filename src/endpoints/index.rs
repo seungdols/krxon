@@ -67,10 +67,7 @@ pub struct IndexRecord {
 }
 
 /// Fetches KRX composite index daily data.
-pub async fn fetch_krx_index(
-    client: &KrxClient,
-    date: &str,
-) -> Result<Vec<IndexRecord>, KrxError> {
+pub async fn fetch_krx_index(client: &KrxClient, date: &str) -> Result<Vec<IndexRecord>, KrxError> {
     fetch_index(client, "/idx/krx_dd_trd", date).await
 }
 

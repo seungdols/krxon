@@ -35,6 +35,11 @@ pub enum FetchResource {
         #[command(subcommand)]
         subcommand: IndexSubcommand,
     },
+    /// Fetch stock (KOSPI/KOSDAQ daily trading and info) data.
+    Stock {
+        #[command(subcommand)]
+        subcommand: StockSubcommand,
+    },
 }
 
 /// Index subcommands.
@@ -48,6 +53,21 @@ pub enum IndexSubcommand {
     Kosdaq(FetchArgs),
     /// Derivatives index daily data.
     Derivatives(FetchArgs),
+}
+
+/// Stock subcommands.
+#[derive(Subcommand, Debug)]
+pub enum StockSubcommand {
+    /// KOSPI stock daily trading data.
+    Kospi(StockFetchArgs),
+    /// KOSDAQ stock daily trading data.
+    Kosdaq(StockFetchArgs),
+    /// KOSPI stock base info.
+    #[command(name = "kospi-info")]
+    KospiInfo(StockFetchArgs),
+    /// KOSDAQ stock base info.
+    #[command(name = "kosdaq-info")]
+    KosdaqInfo(StockFetchArgs),
 }
 
 /// Common arguments for all fetch subcommands.
@@ -64,4 +84,16 @@ pub struct FetchArgs {
     /// Output format: json or table.
     #[arg(long, default_value = "json", value_parser = ["json", "table"])]
     pub output: String,
+}
+
+/// Arguments for stock fetch subcommands (adds --isin option).
+#[derive(clap::Args, Debug)]
+pub struct StockFetchArgs {
+    /// Common fetch arguments (date, key, output).
+    #[command(flatten)]
+    pub common: FetchArgs,
+
+    /// ISIN code to filter a specific stock (e.g. KR7005930003).
+    #[arg(long)]
+    pub isin: Option<String>,
 }
