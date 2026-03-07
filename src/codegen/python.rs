@@ -10,18 +10,7 @@ use serde::Serialize;
 use tera::{Context, Tera};
 
 use super::spec::{load_spec, Spec};
-use super::to_pascal_case;
-
-/// Category names in the order they should appear in generated code.
-const CATEGORIES: &[&str] = &["index", "stock", "etp", "derivatives"];
-
-/// Category descriptions for generated docstrings.
-const CATEGORY_DESCRIPTIONS: &[(&str, &str)] = &[
-    ("index", "Index (KRX/KOSPI/KOSDAQ/Derivatives)"),
-    ("stock", "Stock (KOSPI/KOSDAQ daily trading and info)"),
-    ("etp", "ETP (ETF/ETN)"),
-    ("derivatives", "Derivatives (Futures/Options)"),
-];
+use super::{to_pascal_case, CATEGORIES, CATEGORY_DESCRIPTIONS};
 
 /// Tera context type definition for Python TypedDict generation.
 #[derive(Debug, Serialize)]
