@@ -72,7 +72,7 @@ export interface KrxClient
     {}
 
 export class KrxClient extends KrxClientBase {
-  constructor(options: KrxClientOptions) {
+  constructor(options: KrxClientOptions = {}) {
     super(options);
   }
 }

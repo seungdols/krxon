@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Any, Optional
 
 import httpx
 {% for category in categories %}
@@ -32,7 +32,7 @@ class KrxClient(
 
     def __init__(
         self,
-        api_key: str | None = None,
+        api_key: Optional[str] = None,
         base_url: str = BASE_URL,
         timeout: float = 30.0,
     ) -> None:

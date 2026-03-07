@@ -423,7 +423,20 @@ fn handle_init(api_key: &str) -> anyhow::Result<()> {
     std::fs::create_dir_all(&config_dir)?;
 
     let config = serde_json::json!({ "api_key": api_key });
-    std::fs::write(&config_path, serde_json::to_string_pretty(&config)?)?;
+    let config_bytes = serde_json::to_string_pretty(&config)?;
+
+    // Write with restrictive permissions (0o600) since the file contains a secret.
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        let mut opts = std::fs::OpenOptions::new();
+        opts.write(true).create_new(true).mode(0o600);
+        std::io::Write::write_all(&mut opts.open(&config_path)?, config_bytes.as_bytes())?;
+    }
+    #[cfg(not(unix))]
+    {
+        std::fs::write(&config_path, config_bytes)?;
+    }
 
     println!("설정 파일 생성 완료: {}", config_path.display());
     Ok(())
