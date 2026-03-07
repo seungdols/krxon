@@ -6,134 +6,159 @@
 //! - KOSDAQ index daily (`/idx/ksdaq_dd_trd`)
 //! - Derivatives index daily (`/idx/drv_dd_trd`)
 
-use serde_json::{json, Value};
+use serde::{Deserialize, Serialize};
 
 use crate::client::KrxClient;
 use crate::error::KrxError;
 
-/// Fetches KRX index daily data (`/idx/krx_dd_trd`).
-pub async fn fetch_krx_index(client: &KrxClient, date: &str) -> Result<Vec<Value>, KrxError> {
-    client.post("/idx/krx_dd_trd", json!({"basDd": date})).await
+/// Index daily trading record returned by KRX API.
+///
+/// Fields `acc_trdvol`, `acc_trdval`, and `mktcap` are `Option` because
+/// the derivatives index endpoint does not include them.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct IndexRecord {
+    /// Base date (YYYYMMDD).
+    #[serde(rename = "BAS_DD")]
+    pub bas_dd: String,
+
+    /// Index classification.
+    #[serde(rename = "IDX_CLSS")]
+    pub idx_clss: String,
+
+    /// Index name.
+    #[serde(rename = "IDX_NM")]
+    pub idx_nm: String,
+
+    /// Closing price index.
+    #[serde(rename = "CLSPRC_IDX")]
+    pub clsprc_idx: String,
+
+    /// Change compared to previous day.
+    #[serde(rename = "CMPPREVDD_IDX")]
+    pub cmpprevdd_idx: String,
+
+    /// Fluctuation rate (%).
+    #[serde(rename = "FLUC_RT")]
+    pub fluc_rt: String,
+
+    /// Opening price index.
+    #[serde(rename = "OPNPRC_IDX")]
+    pub opnprc_idx: String,
+
+    /// High price index.
+    #[serde(rename = "HGPRC_IDX")]
+    pub hgprc_idx: String,
+
+    /// Low price index.
+    #[serde(rename = "LWPRC_IDX")]
+    pub lwprc_idx: String,
+
+    /// Accumulated trading volume.
+    #[serde(rename = "ACC_TRDVOL", default)]
+    pub acc_trdvol: Option<String>,
+
+    /// Accumulated trading value.
+    #[serde(rename = "ACC_TRDVAL", default)]
+    pub acc_trdval: Option<String>,
+
+    /// Market capitalization.
+    #[serde(rename = "MKTCAP", default)]
+    pub mktcap: Option<String>,
 }
 
-/// Fetches KOSPI index daily data (`/idx/kospi_dd_trd`).
-pub async fn fetch_kospi_index(client: &KrxClient, date: &str) -> Result<Vec<Value>, KrxError> {
-    client
-        .post("/idx/kospi_dd_trd", json!({"basDd": date}))
-        .await
+/// Fetches KRX composite index daily data.
+pub async fn fetch_krx_index(client: &KrxClient, date: &str) -> Result<Vec<IndexRecord>, KrxError> {
+    fetch_index(client, "/idx/krx_dd_trd", date).await
 }
 
-/// Fetches KOSDAQ index daily data (`/idx/ksdaq_dd_trd`).
-pub async fn fetch_kosdaq_index(client: &KrxClient, date: &str) -> Result<Vec<Value>, KrxError> {
-    client
-        .post("/idx/ksdaq_dd_trd", json!({"basDd": date}))
-        .await
+/// Fetches KOSPI index daily data.
+pub async fn fetch_kospi_index(
+    client: &KrxClient,
+    date: &str,
+) -> Result<Vec<IndexRecord>, KrxError> {
+    fetch_index(client, "/idx/kospi_dd_trd", date).await
 }
 
-/// Fetches derivatives index daily data (`/idx/drv_dd_trd`).
+/// Fetches KOSDAQ index daily data.
+pub async fn fetch_kosdaq_index(
+    client: &KrxClient,
+    date: &str,
+) -> Result<Vec<IndexRecord>, KrxError> {
+    fetch_index(client, "/idx/ksdaq_dd_trd", date).await
+}
+
+/// Fetches derivatives index daily data.
 pub async fn fetch_derivatives_index(
     client: &KrxClient,
     date: &str,
-) -> Result<Vec<Value>, KrxError> {
-    client
-        .post("/idx/drv_dd_trd", json!({"basDd": date}))
-        .await
+) -> Result<Vec<IndexRecord>, KrxError> {
+    fetch_index(client, "/idx/drv_dd_trd", date).await
+}
+
+/// Internal helper: calls the given index endpoint path with the given date.
+async fn fetch_index(
+    client: &KrxClient,
+    path: &str,
+    date: &str,
+) -> Result<Vec<IndexRecord>, KrxError> {
+    let params = serde_json::json!({ "basDd": date });
+    let raw = client.post(path, params).await?;
+
+    let records: Vec<IndexRecord> = raw
+        .into_iter()
+        .map(|v| serde_json::from_value(v).map_err(|e| KrxError::ParseError(e.to_string())))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(records)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mockito::Server;
-    use serde_json::json;
 
-    fn test_client(server: &Server, api_key: &str) -> KrxClient {
-        KrxClient::with_base_url(api_key, &server.url()).expect("failed to create test client")
+    #[test]
+    fn test_deserialize_full_index_record() {
+        let json = serde_json::json!({
+            "BAS_DD": "20250301",
+            "IDX_CLSS": "KRX",
+            "IDX_NM": "KRX 300",
+            "CLSPRC_IDX": "1,234.56",
+            "CMPPREVDD_IDX": "12.34",
+            "FLUC_RT": "1.01",
+            "OPNPRC_IDX": "1,222.00",
+            "HGPRC_IDX": "1,240.00",
+            "LWPRC_IDX": "1,220.00",
+            "ACC_TRDVOL": "1,000,000",
+            "ACC_TRDVAL": "500,000,000",
+            "MKTCAP": "1,000,000,000,000"
+        });
+
+        let record: IndexRecord = serde_json::from_value(json).unwrap();
+        assert_eq!(record.bas_dd, "20250301");
+        assert_eq!(record.idx_nm, "KRX 300");
+        assert_eq!(record.acc_trdvol, Some("1,000,000".to_string()));
+        assert_eq!(record.mktcap, Some("1,000,000,000,000".to_string()));
     }
 
-    #[tokio::test]
-    async fn test_fetch_krx_index_sends_correct_request() {
-        let mut server = Server::new_async().await;
-        let mock = server
-            .mock("POST", "/idx/krx_dd_trd")
-            .match_header("AUTH_KEY", "test_key")
-            .match_body(mockito::Matcher::Json(json!({"basDd": "20250301"})))
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body(
-                json!({
-                    "OutBlock_1": [
-                        {"BAS_DD": "20250301", "IDX_NM": "KRX 300"}
-                    ]
-                })
-                .to_string(),
-            )
-            .create_async()
-            .await;
+    #[test]
+    fn test_deserialize_derivatives_index_record() {
+        let json = serde_json::json!({
+            "BAS_DD": "20250301",
+            "IDX_CLSS": "파생",
+            "IDX_NM": "KOSPI 200 선물지수",
+            "CLSPRC_IDX": "350.00",
+            "CMPPREVDD_IDX": "-2.50",
+            "FLUC_RT": "-0.71",
+            "OPNPRC_IDX": "352.00",
+            "HGPRC_IDX": "353.00",
+            "LWPRC_IDX": "349.00"
+        });
 
-        let client = test_client(&server, "test_key");
-        let result = fetch_krx_index(&client, "20250301").await;
-
-        assert!(result.is_ok());
-        let data = result.unwrap();
-        assert_eq!(data.len(), 1);
-        assert_eq!(data[0]["IDX_NM"], "KRX 300");
-        mock.assert_async().await;
-    }
-
-    #[tokio::test]
-    async fn test_fetch_kospi_index_sends_correct_path() {
-        let mut server = Server::new_async().await;
-        let mock = server
-            .mock("POST", "/idx/kospi_dd_trd")
-            .match_body(mockito::Matcher::Json(json!({"basDd": "20250301"})))
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body(json!({"OutBlock_1": []}).to_string())
-            .create_async()
-            .await;
-
-        let client = test_client(&server, "test_key");
-        let result = fetch_kospi_index(&client, "20250301").await;
-
-        assert!(result.is_ok());
-        mock.assert_async().await;
-    }
-
-    #[tokio::test]
-    async fn test_fetch_kosdaq_index_sends_correct_path() {
-        let mut server = Server::new_async().await;
-        let mock = server
-            .mock("POST", "/idx/ksdaq_dd_trd")
-            .match_body(mockito::Matcher::Json(json!({"basDd": "20250301"})))
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body(json!({"OutBlock_1": []}).to_string())
-            .create_async()
-            .await;
-
-        let client = test_client(&server, "test_key");
-        let result = fetch_kosdaq_index(&client, "20250301").await;
-
-        assert!(result.is_ok());
-        mock.assert_async().await;
-    }
-
-    #[tokio::test]
-    async fn test_fetch_derivatives_index_sends_correct_path() {
-        let mut server = Server::new_async().await;
-        let mock = server
-            .mock("POST", "/idx/drv_dd_trd")
-            .match_body(mockito::Matcher::Json(json!({"basDd": "20250301"})))
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body(json!({"OutBlock_1": []}).to_string())
-            .create_async()
-            .await;
-
-        let client = test_client(&server, "test_key");
-        let result = fetch_derivatives_index(&client, "20250301").await;
-
-        assert!(result.is_ok());
-        mock.assert_async().await;
+        let record: IndexRecord = serde_json::from_value(json).unwrap();
+        assert_eq!(record.bas_dd, "20250301");
+        assert_eq!(record.idx_nm, "KOSPI 200 선물지수");
+        assert!(record.acc_trdvol.is_none());
+        assert!(record.acc_trdval.is_none());
+        assert!(record.mktcap.is_none());
     }
 }

@@ -185,22 +185,25 @@ mod tests {
     impl EnvVarGuard {
         fn set(key: &'static str, value: &str) -> Self {
             let original = std::env::var(key).ok();
-            std::env::set_var(key, value);
+            // SAFETY: Protected by ENV_MUTEX — only one test mutates env at a time.
+            unsafe { std::env::set_var(key, value) };
             Self { key, original }
         }
 
         fn unset(key: &'static str) -> Self {
             let original = std::env::var(key).ok();
-            std::env::remove_var(key);
+            // SAFETY: Protected by ENV_MUTEX — only one test mutates env at a time.
+            unsafe { std::env::remove_var(key) };
             Self { key, original }
         }
     }
 
     impl Drop for EnvVarGuard {
         fn drop(&mut self) {
+            // SAFETY: Protected by ENV_MUTEX — only one test mutates env at a time.
             match &self.original {
-                Some(val) => std::env::set_var(self.key, val),
-                None => std::env::remove_var(self.key),
+                Some(val) => unsafe { std::env::set_var(self.key, val) },
+                None => unsafe { std::env::remove_var(self.key) },
             }
         }
     }

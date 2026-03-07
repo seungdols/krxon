@@ -17,48 +17,97 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Fetch market data from the KRX API.
-    Fetch(FetchArgs),
+    Fetch {
+        #[command(subcommand)]
+        resource: FetchResource,
+    },
     /// Generate SDK clients (Python, TypeScript).
     Generate,
     /// Run as an MCP server.
     Serve,
 }
 
-/// Arguments for the `fetch` command.
-#[derive(Parser, Debug)]
+/// Fetch resource categories.
+#[derive(Subcommand, Debug)]
+pub enum FetchResource {
+    /// Fetch index (KRX/KOSPI/KOSDAQ/Derivatives) data.
+    Index {
+        #[command(subcommand)]
+        subcommand: IndexSubcommand,
+    },
+    /// Fetch stock (KOSPI/KOSDAQ daily trading and info) data.
+    Stock {
+        #[command(subcommand)]
+        subcommand: StockSubcommand,
+    },
+    /// Fetch ETP (ETF/ETN) data.
+    Etp {
+        #[command(subcommand)]
+        subcommand: EtpSubcommand,
+    },
+}
+
+/// Index subcommands.
+#[derive(Subcommand, Debug)]
+pub enum IndexSubcommand {
+    /// KRX composite index daily data.
+    Krx(FetchArgs),
+    /// KOSPI index daily data.
+    Kospi(FetchArgs),
+    /// KOSDAQ index daily data.
+    Kosdaq(FetchArgs),
+    /// Derivatives index daily data.
+    Derivatives(FetchArgs),
+}
+
+/// Stock subcommands.
+#[derive(Subcommand, Debug)]
+pub enum StockSubcommand {
+    /// KOSPI stock daily trading data.
+    Kospi(StockFetchArgs),
+    /// KOSDAQ stock daily trading data.
+    Kosdaq(StockFetchArgs),
+    /// KOSPI stock base info.
+    #[command(name = "kospi-info")]
+    KospiInfo(StockFetchArgs),
+    /// KOSDAQ stock base info.
+    #[command(name = "kosdaq-info")]
+    KosdaqInfo(StockFetchArgs),
+}
+
+/// ETP subcommands.
+#[derive(Subcommand, Debug)]
+pub enum EtpSubcommand {
+    /// ETF daily trading data.
+    Etf(EtpFetchArgs),
+    /// ETN daily trading data.
+    Etn(EtpFetchArgs),
+}
+
+/// Arguments for ETP fetch subcommands.
+#[derive(clap::Args, Debug)]
+pub struct EtpFetchArgs {
+    /// Base date in YYYYMMDD format.
+    #[arg(long)]
+    pub date: String,
+
+    /// Filter by ISIN code (e.g. KR7069500007).
+    #[arg(long)]
+    pub isin: Option<String>,
+
+    /// API key (overrides KRX_API_KEY env var).
+    #[arg(long)]
+    pub key: Option<String>,
+
+    /// Output format: json or table.
+    #[arg(long, default_value = "json", value_parser = ["json", "table"])]
+    pub output: String,
+}
+
+/// Common arguments for all fetch subcommands.
+#[derive(clap::Args, Debug)]
 pub struct FetchArgs {
-    /// Market data category to fetch.
-    #[command(subcommand)]
-    pub category: FetchCategory,
-}
-
-/// Available fetch categories.
-#[derive(Subcommand, Debug)]
-pub enum FetchCategory {
-    /// Fetch index (지수) data.
-    #[command(subcommand)]
-    Index(IndexMarket),
-}
-
-/// Index market subcommands.
-///
-/// Each variant carries shared fetch options (`--date`, `--key`, etc.).
-#[derive(Subcommand, Debug)]
-pub enum IndexMarket {
-    /// KRX 지수 일별 시세.
-    Krx(FetchOptions),
-    /// KOSPI 지수 일별 시세.
-    Kospi(FetchOptions),
-    /// KOSDAQ 지수 일별 시세.
-    Kosdaq(FetchOptions),
-    /// 파생상품 지수 일별 시세.
-    Derivatives(FetchOptions),
-}
-
-/// Shared options for fetch commands.
-#[derive(Parser, Debug)]
-pub struct FetchOptions {
-    /// 기준일자 (YYYYMMDD).
+    /// Base date in YYYYMMDD format.
     #[arg(long)]
     pub date: String,
 
@@ -66,22 +115,19 @@ pub struct FetchOptions {
     #[arg(long)]
     pub key: Option<String>,
 
-    /// Output format.
-    #[arg(long, default_value = "json")]
-    pub format: OutputFormat,
-
-    /// Write output to file instead of stdout.
-    #[arg(long)]
-    pub output: Option<String>,
+    /// Output format: json or table.
+    #[arg(long, default_value = "json", value_parser = ["json", "table"])]
+    pub output: String,
 }
 
-/// Output format for fetch results.
-#[derive(Clone, Debug, ValueEnum)]
-pub enum OutputFormat {
-    /// JSON (default).
-    Json,
-    /// Comma-separated values.
-    Csv,
-    /// Human-readable text table.
-    Table,
+/// Arguments for stock fetch subcommands (adds --isin option).
+#[derive(clap::Args, Debug)]
+pub struct StockFetchArgs {
+    /// Common fetch arguments (date, key, output).
+    #[command(flatten)]
+    pub common: FetchArgs,
+
+    /// ISIN code to filter a specific stock (e.g. KR7005930003).
+    #[arg(long)]
+    pub isin: Option<String>,
 }
