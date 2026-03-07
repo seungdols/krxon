@@ -4,4 +4,5 @@
 //! and the endpoint definitions from `spec/endpoints.yaml`.
 
 pub mod python;
+pub mod spec;
 pub mod typescript;

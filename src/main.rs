@@ -13,7 +13,9 @@ mod utils;
 
 use clap::Parser;
 
-use cli::{Cli, Commands, EtpSubcommand, FetchResource, IndexSubcommand, StockSubcommand};
+use cli::{
+    Cli, Commands, EtpSubcommand, FetchResource, GenerateLanguage, IndexSubcommand, StockSubcommand,
+};
 use client::{resolve_api_key, KrxClient};
 use endpoints::etp::{fetch_etf_daily, fetch_etn_daily};
 use endpoints::index::{
@@ -40,9 +42,11 @@ async fn main() -> anyhow::Result<()> {
                 handle_fetch_etp(subcommand).await?;
             }
         },
-        Commands::Generate => {
-            eprintln!("generate command not yet implemented");
-        }
+        Commands::Generate { language } => match language {
+            GenerateLanguage::Python(args) => {
+                codegen::python::generate(&args.out)?;
+            }
+        },
         Commands::Serve => {
             eprintln!("serve command not yet implemented");
         }
@@ -252,9 +256,7 @@ async fn handle_fetch_etp(subcommand: EtpSubcommand) -> anyhow::Result<()> {
 
     // Warn if ETN date is before data availability.
     if matches!(&subcommand, EtpSubcommand::Etn(_)) && args.date.as_str() < ETN_MIN_DATE {
-        eprintln!(
-            "Warning: ETN data is available from 2014-11-17. Results may be empty."
-        );
+        eprintln!("Warning: ETN data is available from 2014-11-17. Results may be empty.");
     }
 
     // Resolve API key.
@@ -325,8 +327,7 @@ fn print_etn_table(records: &[endpoints::etp::EtnRecord]) {
     for r in records {
         println!(
             "{:<12} {:<14} {:<24} {:>10} {:>10} {:>8} {:>14}",
-            r.bas_dd, r.isu_cd, r.isu_nm, r.tdd_clsprc, r.cmpprevdd_prc, r.fluc_rt,
-            r.indic_val_amt
+            r.bas_dd, r.isu_cd, r.isu_nm, r.tdd_clsprc, r.cmpprevdd_prc, r.fluc_rt, r.indic_val_amt
         );
     }
 }
