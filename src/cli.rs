@@ -7,6 +7,22 @@ use clap::{Parser, Subcommand};
 #[command(name = "krxon")]
 #[command(about = "CLI tool for KRX (Korea Exchange) Open API")]
 #[command(version)]
+#[command(after_help = r#"Examples:
+  krxon index kospi --date 20250301                 Fetch KOSPI index data
+  krxon stock kospi --date 20250301 --output table  Fetch KOSPI stocks as table
+  krxon stock kospi --date 20250301 --isin KR7005930003  Filter by ISIN
+  krxon etp etf --date 20250301                     Fetch ETF data
+  krxon derivatives futures --date 20250301         Fetch futures data
+  krxon generate python --out ./sdk/python          Generate Python SDK
+
+API Key (resolved in order):
+  1. krxon index kospi --key YOUR_KEY  Pass directly with --key flag
+  2. export KRX_API_KEY=YOUR_KEY       Set via shell environment variable
+  3. ~/.krxon/config.json              Config file: { "api_key": "YOUR_KEY" }
+
+Note:
+  'fetch' prefix is optional: 'krxon index ...' = 'krxon fetch index ...'
+  --date must be a business day (YYYYMMDD). Holidays return empty data."#)]
 pub struct Cli {
     /// Subcommand to execute.
     #[command(subcommand)]
@@ -16,6 +32,10 @@ pub struct Cli {
 /// Available subcommands.
 #[derive(Subcommand, Debug)]
 pub enum Commands {
+    /// Initialize config file (~/.krxon/config.json) with API key.
+    Init(InitArgs),
+    /// Remove config directory (~/.krxon). Useful before uninstalling.
+    Clean,
     /// Fetch market data from the KRX API.
     Fetch {
         #[command(subcommand)]
@@ -26,6 +46,17 @@ pub enum Commands {
         #[command(subcommand)]
         language: GenerateLanguage,
     },
+    /// Shortcut: directly access fetch resources without the `fetch` prefix.
+    #[command(flatten)]
+    FetchShortcut(FetchResource),
+}
+
+/// Arguments for the init subcommand.
+#[derive(clap::Args, Debug)]
+pub struct InitArgs {
+    /// API key to save in ~/.krxon/config.json.
+    #[arg(long)]
+    pub key: String,
 }
 
 /// Fetch resource categories.

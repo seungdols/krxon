@@ -12,7 +12,7 @@ pub enum KrxError {
     Unauthorized,
 
     /// API key is missing — not provided via CLI, env var, or config file.
-    #[error("API 키를 찾을 수 없습니다. --key 플래그, KRX_API_KEY 환경 변수, 또는 ~/.krxon/config.toml 을 확인하세요")]
+    #[error("API 키를 찾을 수 없습니다. --key 플래그, KRX_API_KEY 환경 변수, 또는 ~/.krxon/config.json 을 확인하세요")]
     MissingApiKey,
 
     /// API key contains invalid characters for HTTP header.
