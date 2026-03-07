@@ -40,6 +40,11 @@ pub enum FetchResource {
         #[command(subcommand)]
         subcommand: StockSubcommand,
     },
+    /// Fetch ETP (ETF/ETN) data.
+    Etp {
+        #[command(subcommand)]
+        subcommand: EtpSubcommand,
+    },
 }
 
 /// Index subcommands.
@@ -68,6 +73,35 @@ pub enum StockSubcommand {
     /// KOSDAQ stock base info.
     #[command(name = "kosdaq-info")]
     KosdaqInfo(StockFetchArgs),
+}
+
+/// ETP subcommands.
+#[derive(Subcommand, Debug)]
+pub enum EtpSubcommand {
+    /// ETF daily trading data.
+    Etf(EtpFetchArgs),
+    /// ETN daily trading data.
+    Etn(EtpFetchArgs),
+}
+
+/// Arguments for ETP fetch subcommands.
+#[derive(clap::Args, Debug)]
+pub struct EtpFetchArgs {
+    /// Base date in YYYYMMDD format.
+    #[arg(long)]
+    pub date: String,
+
+    /// Filter by ISIN code (e.g. KR7069500007).
+    #[arg(long)]
+    pub isin: Option<String>,
+
+    /// API key (overrides KRX_API_KEY env var).
+    #[arg(long)]
+    pub key: Option<String>,
+
+    /// Output format: json or table.
+    #[arg(long, default_value = "json", value_parser = ["json", "table"])]
+    pub output: String,
 }
 
 /// Common arguments for all fetch subcommands.
