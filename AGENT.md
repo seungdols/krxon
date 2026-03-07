@@ -6,12 +6,13 @@ This file provides guidance for AI agents (Claude, OpenClaw, Copilot, etc.) work
 
 ## Project Overview
 
-`krxon` is a Rust-based CLI tool and MCP server for the KRX (Korea Exchange) Open API.
-It provides three core capabilities:
+`krxon` is a Rust-based CLI tool for the KRX (Korea Exchange) Open API.
+It provides two core capabilities:
 
 - **`fetch`** — Query KRX market data directly from the command line
 - **`generate`** — Generate Python and TypeScript SDK clients from the spec
-- **`serve`** — Run as an MCP server for AI agent integration (OpenClaw, Claude Desktop, etc.)
+
+> **Planned**: `serve` — MCP server for AI agent integration (향후 구현 예정)
 
 ---
 
@@ -20,14 +21,17 @@ It provides three core capabilities:
 ```
 krxon/
 ├── AGENT.md                  ← You are here
+├── README.md
 ├── Cargo.toml
+├── .env.example              ← Environment variable template
 ├── spec/
 │   └── endpoints.yaml        ← Source of Truth for all endpoints
 ├── src/
-│   ├── main.rs
-│   ├── cli.rs                ← CLI entrypoint (clap)
-│   ├── client.rs             ← KRX HTTP client
-│   ├── error.rs              ← Error types (thiserror)
+│   ├── main.rs               ← Async entrypoint (tokio)
+│   ├── cli.rs                ← CLI argument parsing (clap derive)
+│   ├── client.rs             ← KRX HTTP client (reqwest)
+│   ├── error.rs              ← Domain error types (thiserror)
+│   ├── output.rs             ← Table formatting (comfy-table)
 │   ├── utils.rs              ← Date validation, formatting
 │   ├── endpoints/
 │   │   ├── mod.rs
@@ -35,48 +39,54 @@ krxon/
 │   │   ├── stock.rs          ← Stock endpoints (KOSPI/KOSDAQ daily + info)
 │   │   ├── etp.rs            ← ETF/ETN endpoints
 │   │   └── derivatives.rs    ← Futures/Options endpoints
-│   ├── codegen/
-│   │   ├── mod.rs
-│   │   ├── python.rs         ← Python SDK generator
-│   │   └── typescript.rs     ← TypeScript SDK generator
-│   └── mcp/
+│   └── codegen/
 │       ├── mod.rs
-│       └── server.rs         ← MCP server (stdio transport)
+│       ├── spec.rs           ← YAML spec loader
+│       ├── python.rs         ← Python SDK generator
+│       └── typescript.rs     ← TypeScript SDK generator
 ├── templates/
-│   ├── python/               ← Tera templates for Python codegen
-│   └── typescript/           ← Tera templates for TypeScript codegen
+│   ├── python/
+│   │   ├── __init__.py.tera
+│   │   ├── client.py.tera
+│   │   ├── types.py.tera
+│   │   └── endpoints/
+│   │       ├── __init__.py.tera
+│   │       └── category.py.tera
+│   └── typescript/
+│       ├── package.json.tera
+│       ├── tsconfig.json.tera
+│       └── src/
+│           ├── index.ts.tera
+│           ├── client.ts.tera
+│           ├── types.ts.tera
+│           └── endpoints/
+│               └── category.ts.tera
+├── tests/
+│   ├── python_codegen_smoke.rs
+│   └── typescript_codegen_smoke.rs
 └── docs/
-    ├── architecture.md       ← System design and decisions
-    ├── endpoints.md          ← KRX API endpoint reference
-    ├── codegen.md            ← Code generation guide
-    ├── mcp.md                ← MCP server setup and tool reference
-    └── contributing.md       ← Contribution guidelines
+    ├── architecture.md       ← 시스템 설계 및 모듈 구조
+    ├── endpoints.md          ← KRX API 엔드포인트 레퍼런스
+    ├── codegen.md            ← 코드 생성 가이드
+    └── contributing.md       ← 기여 가이드
 ```
 
 ---
 
 ## Documentation Policy
 
-> **Always read and keep the `docs/` directory up to date.**
+> **코드 변경 시 관련 문서를 함께 업데이트합니다.**
 
-### Before making changes
+### 변경 시 업데이트할 문서
 
-1. Read the relevant document in `docs/` before modifying any module.
-2. If a document does not exist yet, create it before or alongside your implementation.
+| 변경 내용 | 업데이트 대상 |
+|---------|------------|
+| 엔드포인트 추가/수정 | `docs/endpoints.md` |
+| 아키텍처/모듈 구조 변경 | `docs/architecture.md` |
+| 코드 생성 템플릿/로직 변경 | `docs/codegen.md` |
+| 빌드, 테스트, 기여 프로세스 변경 | `docs/contributing.md` |
 
-### After making changes
-
-Update the corresponding `docs/` file whenever you:
-
-| Change | Document to update |
-|---|---|
-| Add or modify an endpoint | `docs/endpoints.md` |
-| Change architecture or module structure | `docs/architecture.md` |
-| Modify codegen templates or logic | `docs/codegen.md` |
-| Change MCP tool definitions or server behavior | `docs/mcp.md` |
-| Update build, test, or contribution process | `docs/contributing.md` |
-
-Documentation must stay in sync with the code. A PR that changes behavior without updating the relevant `docs/` file is considered incomplete.
+코드 변경 없이 문서만 변경하는 것도 허용됩니다.
 
 ---
 
@@ -86,13 +96,11 @@ Documentation must stay in sync with the code. A PR that changes behavior withou
 
 - All `fetch` subcommands are derived from this file.
 - All generated SDK code (Python, TypeScript) is derived from this file.
-- All MCP tool definitions are derived from this file.
 
 When adding a new endpoint:
 1. Add it to `spec/endpoints.yaml` first.
 2. Implement the corresponding fetch subcommand.
 3. Regenerate SDK outputs if needed (`krxon generate python/typescript`).
-4. Update `docs/endpoints.md`.
 
 ---
 
@@ -146,31 +154,16 @@ cargo fmt
 # Run CLI locally
 cargo run -- fetch index kospi --date 20250301 --key $KRX_API_KEY
 
-# Run MCP server (stdio mode)
-cargo run -- serve --stdio
+# Generate SDKs
+cargo run -- generate python --out ./sdk/python
+cargo run -- generate typescript --out ./sdk/typescript
 ```
 
 ---
 
-## MCP Integration (OpenClaw / Claude Desktop)
+## MCP Integration (향후 구현 예정)
 
-Add the following to your MCP client configuration:
-
-```json
-{
-  "mcpServers": {
-    "krxon": {
-      "command": "krxon",
-      "args": ["serve", "--stdio"],
-      "env": {
-        "KRX_API_KEY": "your_api_key_here"
-      }
-    }
-  }
-}
-```
-
-Available MCP tools are documented in `docs/mcp.md`.
+`serve` 명령은 아직 구현되지 않았습니다. 구현 시 MCP 서버(stdio transport)로 AI 에이전트 통합을 지원할 예정입니다.
 
 ---
 
@@ -190,7 +183,7 @@ All work is tracked via GitHub Issues. Labels used:
 | `mcp` | MCP server work |
 | `release` | Release and deployment |
 
-Before starting work on an issue, check whether a related `docs/` file needs to be read or created.
+Before starting work on an issue, check whether `AGENT.md` or `README.md` needs to be updated.
 
 ---
 
