@@ -307,8 +307,7 @@ mod tests {
         let types = std::fs::read_to_string(out_dir.join("krx/src/types.ts")).unwrap();
         assert!(types.starts_with("// AUTO-GENERATED"));
 
-        let index_ep =
-            std::fs::read_to_string(out_dir.join("krx/src/endpoints/index.ts")).unwrap();
+        let index_ep = std::fs::read_to_string(out_dir.join("krx/src/endpoints/index.ts")).unwrap();
         assert!(index_ep.starts_with("// AUTO-GENERATED"));
         assert!(index_ep.contains("getKrxIndexDaily"));
 
