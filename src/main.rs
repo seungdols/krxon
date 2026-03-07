@@ -59,7 +59,7 @@ async fn handle_fetch_index(subcommand: IndexSubcommand) -> anyhow::Result<()> {
 
     // Resolve API key.
     let api_key = resolve_api_key(args.key.as_deref())?;
-    let client = KrxClient::new(api_key);
+    let client = KrxClient::new(&api_key)?;
 
     // Call the appropriate endpoint.
     let records = match &subcommand {

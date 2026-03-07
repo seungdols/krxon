@@ -105,7 +105,7 @@ async fn fetch_index(
     date: &str,
 ) -> Result<Vec<IndexRecord>, KrxError> {
     let params = serde_json::json!({ "basDd": date });
-    let raw = client.fetch(path, params).await?;
+    let raw = client.post(path, params).await?;
 
     let records: Vec<IndexRecord> = raw
         .into_iter()
