@@ -18,7 +18,13 @@ pub fn format_as_csv(data: &[Value]) -> String {
     let mut lines = Vec::with_capacity(data.len() + 1);
 
     // Header line
-    lines.push(headers.iter().map(|h| csv_escape(h)).collect::<Vec<_>>().join(","));
+    lines.push(
+        headers
+            .iter()
+            .map(|h| csv_escape(h))
+            .collect::<Vec<_>>()
+            .join(","),
+    );
 
     // Data rows
     for row in data {

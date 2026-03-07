@@ -171,18 +171,12 @@ pub struct EtnRecord {
 }
 
 /// Fetches ETF daily trading data.
-pub async fn fetch_etf_daily(
-    client: &KrxClient,
-    date: &str,
-) -> Result<Vec<EtfRecord>, KrxError> {
+pub async fn fetch_etf_daily(client: &KrxClient, date: &str) -> Result<Vec<EtfRecord>, KrxError> {
     fetch_etp(client, "/etp/etf_bydd_trd", date).await
 }
 
 /// Fetches ETN daily trading data.
-pub async fn fetch_etn_daily(
-    client: &KrxClient,
-    date: &str,
-) -> Result<Vec<EtnRecord>, KrxError> {
+pub async fn fetch_etn_daily(client: &KrxClient, date: &str) -> Result<Vec<EtnRecord>, KrxError> {
     fetch_etp(client, "/etp/etn_bydd_trd", date).await
 }
 

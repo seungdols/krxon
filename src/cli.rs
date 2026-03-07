@@ -22,7 +22,10 @@ pub enum Commands {
         resource: FetchResource,
     },
     /// Generate SDK clients (Python, TypeScript).
-    Generate,
+    Generate {
+        #[command(subcommand)]
+        language: GenerateLanguage,
+    },
     /// Run as an MCP server.
     Serve,
 }
@@ -130,4 +133,19 @@ pub struct StockFetchArgs {
     /// ISIN code to filter a specific stock (e.g. KR7005930003).
     #[arg(long)]
     pub isin: Option<String>,
+}
+
+/// Generate language targets.
+#[derive(Subcommand, Debug)]
+pub enum GenerateLanguage {
+    /// Generate Python SDK client.
+    Python(GenerateArgs),
+}
+
+/// Arguments for the generate subcommand.
+#[derive(clap::Args, Debug)]
+pub struct GenerateArgs {
+    /// Output directory for generated SDK files.
+    #[arg(long)]
+    pub out: String,
 }
