@@ -1,4 +1,4 @@
-//! krxon - CLI tool and MCP server for KRX (Korea Exchange) Open API.
+//! krxon - CLI tool for KRX (Korea Exchange) Open API.
 
 #![allow(dead_code)]
 
@@ -7,16 +7,21 @@ mod client;
 mod codegen;
 mod endpoints;
 mod error;
-mod mcp;
 mod output;
 mod utils;
 
 use clap::Parser;
 
 use cli::{
-    Cli, Commands, EtpSubcommand, FetchResource, GenerateLanguage, IndexSubcommand, StockSubcommand,
+    Cli, Commands, DerivativesSubcommand, EtpSubcommand, FetchResource, GenerateLanguage,
+    IndexSubcommand, StockSubcommand,
 };
 use client::{resolve_api_key, KrxClient};
+use endpoints::derivatives::{
+    fetch_futures_daily, fetch_options_daily, fetch_stock_futures_kosdaq_daily,
+    fetch_stock_futures_kospi_daily, fetch_stock_options_kosdaq_daily,
+    fetch_stock_options_kospi_daily,
+};
 use endpoints::etp::{fetch_etf_daily, fetch_etn_daily};
 use endpoints::index::{
     fetch_derivatives_index, fetch_kosdaq_index, fetch_kospi_index, fetch_krx_index,
@@ -41,6 +46,9 @@ async fn main() -> anyhow::Result<()> {
             FetchResource::Etp { subcommand } => {
                 handle_fetch_etp(subcommand).await?;
             }
+            FetchResource::Derivatives { subcommand } => {
+                handle_fetch_derivatives(subcommand).await?;
+            }
         },
         Commands::Generate { language } => match language {
             GenerateLanguage::Python(args) => {
@@ -50,9 +58,6 @@ async fn main() -> anyhow::Result<()> {
                 codegen::typescript::generate(&args.out)?;
             }
         },
-        Commands::Serve => {
-            eprintln!("serve command not yet implemented");
-        }
     }
 
     Ok(())
@@ -331,6 +336,148 @@ fn print_etn_table(records: &[endpoints::etp::EtnRecord]) {
         println!(
             "{:<12} {:<14} {:<24} {:>10} {:>10} {:>8} {:>14}",
             r.bas_dd, r.isu_cd, r.isu_nm, r.tdd_clsprc, r.cmpprevdd_prc, r.fluc_rt, r.indic_val_amt
+        );
+    }
+}
+
+/// Handles `fetch derivatives <subcommand>`.
+async fn handle_fetch_derivatives(subcommand: DerivativesSubcommand) -> anyhow::Result<()> {
+    let args = match &subcommand {
+        DerivativesSubcommand::Futures(args)
+        | DerivativesSubcommand::StockFuturesKospi(args)
+        | DerivativesSubcommand::StockFuturesKosdaq(args)
+        | DerivativesSubcommand::Options(args)
+        | DerivativesSubcommand::StockOptionsKospi(args)
+        | DerivativesSubcommand::StockOptionsKosdaq(args) => args,
+    };
+
+    // Validate date format.
+    if !utils::is_valid_date_format(&args.date) {
+        anyhow::bail!(
+            "Invalid date format: '{}'. Expected YYYYMMDD (e.g. 20250301)",
+            args.date
+        );
+    }
+
+    // Resolve API key.
+    let api_key = resolve_api_key(args.key.as_deref())?;
+    let client = KrxClient::new(&api_key)?;
+    let date = &args.date;
+
+    match &subcommand {
+        DerivativesSubcommand::Futures(_) => {
+            let records = fetch_futures_daily(&client, date).await?;
+            eprintln!("Fetched {} records", records.len());
+            match args.output.as_str() {
+                "table" => print_futures_table(&records),
+                _ => println!("{}", serde_json::to_string_pretty(&records)?),
+            }
+        }
+        DerivativesSubcommand::StockFuturesKospi(_) => {
+            let records = fetch_stock_futures_kospi_daily(&client, date).await?;
+            eprintln!("Fetched {} records", records.len());
+            match args.output.as_str() {
+                "table" => print_stock_futures_table(&records),
+                _ => println!("{}", serde_json::to_string_pretty(&records)?),
+            }
+        }
+        DerivativesSubcommand::StockFuturesKosdaq(_) => {
+            let records = fetch_stock_futures_kosdaq_daily(&client, date).await?;
+            eprintln!("Fetched {} records", records.len());
+            match args.output.as_str() {
+                "table" => print_stock_futures_table(&records),
+                _ => println!("{}", serde_json::to_string_pretty(&records)?),
+            }
+        }
+        DerivativesSubcommand::Options(_) => {
+            let records = fetch_options_daily(&client, date).await?;
+            eprintln!("Fetched {} records", records.len());
+            match args.output.as_str() {
+                "table" => print_options_table(&records),
+                _ => println!("{}", serde_json::to_string_pretty(&records)?),
+            }
+        }
+        DerivativesSubcommand::StockOptionsKospi(_) => {
+            let records = fetch_stock_options_kospi_daily(&client, date).await?;
+            eprintln!("Fetched {} records", records.len());
+            match args.output.as_str() {
+                "table" => print_options_table(&records),
+                _ => println!("{}", serde_json::to_string_pretty(&records)?),
+            }
+        }
+        DerivativesSubcommand::StockOptionsKosdaq(_) => {
+            let records = fetch_stock_options_kosdaq_daily(&client, date).await?;
+            eprintln!("Fetched {} records", records.len());
+            match args.output.as_str() {
+                "table" => print_options_table(&records),
+                _ => println!("{}", serde_json::to_string_pretty(&records)?),
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Prints futures records in a simple text table format.
+fn print_futures_table(records: &[endpoints::derivatives::FuturesRecord]) {
+    if records.is_empty() {
+        println!("No data found.");
+        return;
+    }
+
+    println!(
+        "{:<12} {:<16} {:<24} {:>10} {:>10} {:>10} {:>14}",
+        "Date", "Code", "Name", "Close", "Change", "Settle", "Volume"
+    );
+    println!("{}", "-".repeat(104));
+
+    for r in records {
+        println!(
+            "{:<12} {:<16} {:<24} {:>10} {:>10} {:>10} {:>14}",
+            r.bas_dd, r.isu_cd, r.isu_nm, r.tdd_clsprc, r.cmpprevdd_prc, r.setl_prc, r.acc_trdvol
+        );
+    }
+}
+
+/// Prints stock futures records in a simple text table format.
+fn print_stock_futures_table(records: &[endpoints::derivatives::StockFuturesRecord]) {
+    if records.is_empty() {
+        println!("No data found.");
+        return;
+    }
+
+    println!(
+        "{:<12} {:<16} {:<24} {:>10} {:>10} {:>10} {:>14}",
+        "Date", "Code", "Name", "Close", "Change", "Settle", "Volume"
+    );
+    println!("{}", "-".repeat(104));
+
+    for r in records {
+        println!(
+            "{:<12} {:<16} {:<24} {:>10} {:>10} {:>10} {:>14}",
+            r.bas_dd, r.isu_cd, r.isu_nm, r.tdd_clsprc, r.cmpprevdd_prc, r.setl_prc, r.acc_trdvol
+        );
+    }
+}
+
+/// Prints options records in a simple text table format.
+fn print_options_table(records: &[endpoints::derivatives::OptionsRecord]) {
+    if records.is_empty() {
+        println!("No data found.");
+        return;
+    }
+
+    println!(
+        "{:<12} {:<16} {:<24} {:<6} {:>10} {:>10} {:>10} {:>14}",
+        "Date", "Code", "Name", "C/P", "Close", "Change", "IV", "Volume"
+    );
+    println!("{}", "-".repeat(110));
+
+    for r in records {
+        println!(
+            "{:<12} {:<16} {:<24} {:<6} {:>10} {:>10} {:>10} {:>14}",
+            r.bas_dd, r.isu_cd, r.isu_nm, r.rght_tp_nm, r.tdd_clsprc, r.cmpprevdd_prc,
+            r.imp_volt, r.acc_trdvol
         );
     }
 }
