@@ -8,6 +8,7 @@ mod codegen;
 mod endpoints;
 mod error;
 mod mcp;
+mod output;
 mod utils;
 
 use clap::Parser;
