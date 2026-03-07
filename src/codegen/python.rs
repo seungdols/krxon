@@ -10,17 +10,7 @@ use serde::Serialize;
 use tera::{Context, Tera};
 
 use super::spec::{load_spec, Spec};
-
-/// Category names in the order they should appear in generated code.
-const CATEGORIES: &[&str] = &["index", "stock", "etp", "derivatives"];
-
-/// Category descriptions for generated docstrings.
-const CATEGORY_DESCRIPTIONS: &[(&str, &str)] = &[
-    ("index", "Index (KRX/KOSPI/KOSDAQ/Derivatives)"),
-    ("stock", "Stock (KOSPI/KOSDAQ daily trading and info)"),
-    ("etp", "ETP (ETF/ETN)"),
-    ("derivatives", "Derivatives (Futures/Options)"),
-];
+use super::{to_pascal_case, CATEGORIES, CATEGORY_DESCRIPTIONS};
 
 /// Tera context type definition for Python TypedDict generation.
 #[derive(Debug, Serialize)]
@@ -109,23 +99,6 @@ pub fn generate(out_dir: &str) -> anyhow::Result<()> {
 
     eprintln!("Python SDK generated at: {}/krx/", out_dir);
     Ok(())
-}
-
-/// Converts a snake_case string to PascalCase.
-fn to_pascal_case(s: &str) -> String {
-    s.split('_')
-        .filter(|part| !part.is_empty())
-        .map(|part| {
-            let mut chars = part.chars();
-            match chars.next() {
-                Some(c) => {
-                    let upper: String = c.to_uppercase().collect();
-                    upper + chars.as_str()
-                }
-                None => String::new(),
-            }
-        })
-        .collect()
 }
 
 /// Derives a TypedDict class name from a Python method name.
