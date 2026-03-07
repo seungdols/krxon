@@ -23,6 +23,10 @@ pub enum KrxError {
     #[error("API key not found. Provide via --key, KRX_API_KEY env var, or ~/.krxon/config.toml")]
     MissingApiKey,
 
+    /// API key contains invalid characters for HTTP header.
+    #[error("Invalid API key: contains characters not allowed in HTTP headers")]
+    InvalidApiKey,
+
     /// Deserialization failed.
     #[error("Failed to parse response: {0}")]
     ParseError(String),
