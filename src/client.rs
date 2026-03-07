@@ -53,7 +53,7 @@ impl KrxClient {
 
     /// Creates a client with a custom base URL (for testing).
     #[cfg(test)]
-    fn with_base_url(api_key: &str, base_url: &str) -> Result<Self, KrxError> {
+    pub(crate) fn with_base_url(api_key: &str, base_url: &str) -> Result<Self, KrxError> {
         let mut client = Self::new(api_key)?;
         client.base_url = base_url.to_string();
         Ok(client)
