@@ -29,14 +29,14 @@ impl KrxClient {
     ///
     /// # Errors
     ///
-    /// - [`KrxError::Unauthorized`] if the API key contains invalid HTTP header characters
+    /// - [`KrxError::InvalidApiKey`] if the API key contains invalid HTTP header characters
     /// - [`KrxError::Http`] if the HTTP client fails to initialize
     pub fn new(api_key: &str) -> Result<Self, KrxError> {
         let mut default_headers = HeaderMap::new();
         default_headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
         default_headers.insert(
             "AUTH_KEY",
-            HeaderValue::from_str(api_key).map_err(|_| KrxError::Unauthorized)?,
+            HeaderValue::from_str(api_key).map_err(|_| KrxError::InvalidApiKey)?,
         );
 
         let client = reqwest::Client::builder()
@@ -91,7 +91,8 @@ impl KrxClient {
     /// - [`KrxError::Unauthorized`] if the API key is invalid (HTTP 401)
     /// - [`KrxError::ServiceNotSubscribed`] if the endpoint requires subscription (HTTP 403)
     /// - [`KrxError::RateLimitExceeded`] if the daily call limit is exceeded (HTTP 429)
-    /// - [`KrxError::ParseError`] for other HTTP failures or missing `OutBlock_1`
+    /// - [`KrxError::ApiError`] for other unexpected HTTP status codes
+    /// - [`KrxError::ParseError`] if `OutBlock_1` is missing or not an array
     pub async fn post(&self, path: &str, body: Value) -> Result<Vec<Value>, KrxError> {
         let url = self.build_url(path);
 
@@ -110,7 +111,7 @@ impl KrxClient {
                         Ok(text) => text,
                         Err(e) => format!("<failed to read body: {}>", e),
                     };
-                    Err(KrxError::ParseError(format!(
+                    Err(KrxError::ApiError(format!(
                         "HTTP {}: {}",
                         status.as_u16(),
                         body_text
@@ -140,7 +141,7 @@ impl KrxClient {
 /// 2. `KRX_API_KEY` environment variable
 /// 3. `~/.krxon/config.toml` (not yet implemented)
 ///
-/// Returns [`KrxError::Unauthorized`] if no key is found.
+/// Returns [`KrxError::MissingApiKey`] if no key is found.
 pub fn resolve_api_key(cli_key: Option<&str>) -> Result<String, KrxError> {
     // 1. CLI flag
     if let Some(key) = cli_key {
@@ -158,7 +159,7 @@ pub fn resolve_api_key(cli_key: Option<&str>) -> Result<String, KrxError> {
 
     // TODO: 3. ~/.krxon/config.toml (requires toml crate dependency)
 
-    Err(KrxError::Unauthorized)
+    Err(KrxError::MissingApiKey)
 }
 
 #[cfg(test)]
@@ -222,7 +223,7 @@ mod tests {
         // Header values cannot contain \n
         let result = KrxClient::new("bad\nkey");
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), KrxError::Unauthorized));
+        assert!(matches!(result.unwrap_err(), KrxError::InvalidApiKey));
     }
 
     #[test]
@@ -404,7 +405,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_post_500_returns_parse_error() {
+    async fn test_post_500_returns_api_error() {
         let mut server = Server::new_async().await;
         let mock = server
             .mock("POST", "/idx/krx_dd_trd")
@@ -417,7 +418,7 @@ mod tests {
         let result = client.post("/idx/krx_dd_trd", json!({})).await;
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), KrxError::ParseError(_)));
+        assert!(matches!(result.unwrap_err(), KrxError::ApiError(_)));
         mock.assert_async().await;
     }
 
@@ -448,6 +449,6 @@ mod tests {
 
         let result = resolve_api_key(None);
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), KrxError::Unauthorized));
+        assert!(matches!(result.unwrap_err(), KrxError::MissingApiKey));
     }
 }

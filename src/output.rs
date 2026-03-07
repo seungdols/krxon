@@ -72,13 +72,13 @@ pub fn format_as_table(data: &[Value]) -> String {
 /// Builds a `comfy-table` from explicit headers and typed record rows.
 ///
 /// Each record is converted to a row via the `to_row` closure.
-/// Returns the formatted table string, or `"No data found."` if empty.
+/// Returns the formatted table string, or an empty string if `records` is empty.
 pub fn format_records_table<T, F>(headers: &[&str], records: &[T], to_row: F) -> String
 where
     F: Fn(&T) -> Vec<String>,
 {
     if records.is_empty() {
-        return "No data found.".to_string();
+        return String::new();
     }
 
     let mut table = Table::new();
@@ -173,7 +173,7 @@ mod tests {
     #[test]
     fn test_format_records_table_empty() {
         let result = format_records_table::<String, _>(&["A", "B"], &[], |_| vec![]);
-        assert_eq!(result, "No data found.");
+        assert_eq!(result, "");
     }
 
     #[test]
