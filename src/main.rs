@@ -70,7 +70,7 @@ async fn main() -> anyhow::Result<()> {
 
                 // 5. Write to stdout or file
                 match &opts.output {
-                    Some(path) => std::fs::write(path, &formatted)?,
+                    Some(path) => std::fs::write(path, format!("{}\n", formatted))?,
                     None => println!("{}", formatted),
                 }
             }
