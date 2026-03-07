@@ -50,7 +50,13 @@ async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Fetch { resource } => match resource {
+        Commands::Init(args) => {
+            handle_init(&args.key)?;
+        }
+        Commands::Clean => {
+            handle_clean()?;
+        }
+        Commands::Fetch { resource } | Commands::FetchShortcut(resource) => match resource {
             FetchResource::Index { subcommand } => {
                 handle_fetch_index(subcommand).await?;
             }
@@ -395,5 +401,62 @@ fn output_options(
         }
         _ => println!("{}", serde_json::to_string_pretty(&records)?),
     }
+    Ok(())
+}
+
+/// Handles `init --key <API_KEY>`.
+///
+/// Creates `~/.krxon/config.json` with the given API key.
+/// Skips if the config file already exists.
+fn handle_init(api_key: &str) -> anyhow::Result<()> {
+    let home = std::env::var("HOME")
+        .map_err(|_| anyhow::anyhow!("HOME 환경 변수를 찾을 수 없습니다"))?;
+    let config_dir = std::path::Path::new(&home).join(".krxon");
+    let config_path = config_dir.join("config.json");
+
+    if config_path.exists() {
+        println!("설정 파일이 이미 존재합니다: {}", config_path.display());
+        println!("기존 설정을 덮어쓰려면 파일을 삭제 후 다시 실행하세요.");
+        return Ok(());
+    }
+
+    std::fs::create_dir_all(&config_dir)?;
+
+    let config = serde_json::json!({ "api_key": api_key });
+    let config_bytes = serde_json::to_string_pretty(&config)?;
+
+    // Write with restrictive permissions (0o600) since the file contains a secret.
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        let mut opts = std::fs::OpenOptions::new();
+        opts.write(true).create_new(true).mode(0o600);
+        std::io::Write::write_all(&mut opts.open(&config_path)?, config_bytes.as_bytes())?;
+    }
+    #[cfg(not(unix))]
+    {
+        std::fs::write(&config_path, config_bytes)?;
+    }
+
+    println!("설정 파일 생성 완료: {}", config_path.display());
+    Ok(())
+}
+
+/// Handles `clean`.
+///
+/// Removes the `~/.krxon` config directory.
+/// Skips if it doesn't exist.
+fn handle_clean() -> anyhow::Result<()> {
+    let home = std::env::var("HOME")
+        .map_err(|_| anyhow::anyhow!("HOME 환경 변수를 찾을 수 없습니다"))?;
+    let config_dir = std::path::Path::new(&home).join(".krxon");
+
+    if !config_dir.exists() {
+        println!("설정 디렉토리가 존재하지 않습니다: {}", config_dir.display());
+        return Ok(());
+    }
+
+    std::fs::remove_dir_all(&config_dir)?;
+    println!("설정 디렉토리 삭제 완료: {}", config_dir.display());
     Ok(())
 }

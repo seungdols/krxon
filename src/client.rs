@@ -139,7 +139,7 @@ impl KrxClient {
 ///
 /// 1. Explicit key (from CLI `--key` flag)
 /// 2. `KRX_API_KEY` environment variable
-/// 3. `~/.krxon/config.toml` (not yet implemented)
+/// 3. `~/.krxon/config.json` file (`{ "api_key": "..." }`)
 ///
 /// Returns [`KrxError::MissingApiKey`] if no key is found.
 pub fn resolve_api_key(cli_key: Option<&str>) -> Result<String, KrxError> {
@@ -157,9 +157,25 @@ pub fn resolve_api_key(cli_key: Option<&str>) -> Result<String, KrxError> {
         }
     }
 
-    // TODO: 3. ~/.krxon/config.toml (requires toml crate dependency)
+    // 3. Config file (~/.krxon/config.json)
+    if let Some(key) = load_api_key_from_config() {
+        if !key.is_empty() {
+            return Ok(key);
+        }
+    }
 
     Err(KrxError::MissingApiKey)
+}
+
+/// Loads the API key from `~/.krxon/config.json`.
+///
+/// Expected format: `{ "api_key": "your_api_key" }`
+fn load_api_key_from_config() -> Option<String> {
+    let home = std::env::var("HOME").ok()?;
+    let config_path = std::path::Path::new(&home).join(".krxon").join("config.json");
+    let content = std::fs::read_to_string(config_path).ok()?;
+    let json: serde_json::Value = serde_json::from_str(&content).ok()?;
+    json.get("api_key")?.as_str().map(|s| s.to_string())
 }
 
 #[cfg(test)]

@@ -6,8 +6,9 @@ import { {{ category | title }}Mixin } from "./endpoints/{{ category }}.js";
 {% endfor %}
 /** Options for creating a KrxClient instance. */
 export interface KrxClientOptions {
-  /** API key for authentication ({{ notes.auth_header }} header). */
-  apiKey: string;
+  /** API key for authentication ({{ notes.auth_header }} header).
+   *  Falls back to KRX_API_KEY environment variable if not provided. */
+  apiKey?: string;
   /** Base URL for the KRX API. */
   baseUrl?: string;
   /** Request timeout in milliseconds. */
@@ -22,8 +23,12 @@ class KrxClientBase {
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
 
-  constructor(options: KrxClientOptions) {
-    this.apiKey = options.apiKey;
+  constructor(options: KrxClientOptions = {}) {
+    const resolvedKey = options.apiKey || (typeof process !== "undefined" ? process.env.KRX_API_KEY : undefined);
+    if (!resolvedKey) {
+      throw new Error("API key is required. Pass apiKey or set KRX_API_KEY environment variable.");
+    }
+    this.apiKey = resolvedKey;
     this.baseUrl = (options.baseUrl ?? BASE_URL).replace(/\/+$/, "");
     this.timeoutMs = options.timeoutMs ?? 30_000;
   }
@@ -67,7 +72,7 @@ export interface KrxClient
     {}
 
 export class KrxClient extends KrxClientBase {
-  constructor(options: KrxClientOptions) {
+  constructor(options: KrxClientOptions = {}) {
     super(options);
   }
 }

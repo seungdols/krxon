@@ -5,7 +5,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+import os
+from typing import Any, Optional
 
 import httpx
 {% for category in categories %}
@@ -22,6 +23,7 @@ class KrxClient(
 
     Args:
         api_key: API key for authentication ({{ notes.auth_header }} header).
+                 Falls back to KRX_API_KEY environment variable if not provided.
         base_url: Base URL for the KRX API.
         timeout: Request timeout in seconds.
     """
@@ -30,15 +32,20 @@ class KrxClient(
 
     def __init__(
         self,
-        api_key: str,
+        api_key: Optional[str] = None,
         base_url: str = BASE_URL,
         timeout: float = 30.0,
     ) -> None:
-        self.api_key = api_key
+        resolved_key = api_key or os.environ.get("KRX_API_KEY", "")
+        if not resolved_key:
+            raise ValueError(
+                "API key is required. Pass api_key or set KRX_API_KEY environment variable."
+            )
+        self.api_key = resolved_key
         self.base_url = base_url.rstrip("/")
         self._client = httpx.Client(
             headers={
-                "{{ notes.auth_header }}": api_key,
+                "{{ notes.auth_header }}": resolved_key,
                 "Content-Type": "{{ notes.content_type }}",
             },
             timeout=timeout,
