@@ -7,32 +7,49 @@ CLI tool for the KRX (Korea Exchange) Open API.
 - **fetch** - Query KRX market data from the command line
 - **generate** - Generate Python and TypeScript SDK clients from the API spec
 
+## Installation
+
+### Cargo (Rust)
+
+```bash
+cargo install krxon
+```
+
+### Python SDK (PyPI)
+
+```bash
+pip install krxon
+```
+
+### TypeScript SDK (npm)
+
+```bash
+npm install @krxon/krx
+```
+
+### From source
+
+```bash
+git clone https://github.com/seungdols/krxon.git
+cd krxon
+cargo build --release
+```
+
 ## Getting Started
 
 ### Prerequisites
 
-- Rust 1.75+ (2021 edition)
 - A KRX Open API key from [openapi.krx.co.kr](https://openapi.krx.co.kr)
 
 ### Setup
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/seungdols/krxon.git
-   cd krxon
-   ```
+```bash
+# Store your API key
+krxon init
 
-2. Copy the environment file:
-   ```bash
-   cp .env.example .env
-   ```
-
-3. Edit `.env` and add your API key.
-
-4. Build the project:
-   ```bash
-   cargo build
-   ```
+# Or set via environment variable
+export KRX_API_KEY=your_key_here
+```
 
 ### Usage
 
@@ -99,6 +116,29 @@ krxon generate typescript --out ./sdk/typescript
 - `--date` (required): Base date in YYYYMMDD format
 - `--key`: API key (overrides `KRX_API_KEY` env var)
 - `--output`: `json` (default) or `table`
+
+## SDK Usage
+
+### Python
+
+```python
+from krx import KrxClient
+
+client = KrxClient(api_key="your_key")
+records = client.get_kospi_stock_daily(base_date="20250301")
+for r in records:
+    print(r["ISU_NM"], r["TDD_CLSPRC"])
+```
+
+### TypeScript
+
+```typescript
+import { KrxClient } from "@krxon/krx";
+
+const client = new KrxClient({ apiKey: "your_key" });
+const records = await client.getKospiStockDaily({ basDate: "20250301" });
+records.forEach((r) => console.log(r.ISU_NM, r.TDD_CLSPRC));
+```
 
 ## Project Structure
 
