@@ -125,7 +125,7 @@ krxon generate typescript --out ./sdk/typescript
 from krx import KrxClient
 
 client = KrxClient(api_key="your_key")
-records = client.get_kospi_stock_daily(base_date="20250301")
+records = client.get_kospi_stock_daily(basDd="20250301")
 for r in records:
     print(r["ISU_NM"], r["TDD_CLSPRC"])
 ```
@@ -136,7 +136,7 @@ for r in records:
 import { KrxClient } from "@krxon/krx";
 
 const client = new KrxClient({ apiKey: "your_key" });
-const records = await client.getKospiStockDaily({ basDate: "20250301" });
+const records = await client.getKospiStockDaily("20250301");
 records.forEach((r) => console.log(r.ISU_NM, r.TDD_CLSPRC));
 ```
 

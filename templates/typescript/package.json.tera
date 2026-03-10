@@ -25,5 +25,5 @@
     "url": "https://github.com/seungdols/krxon/issues"
   },
   "keywords": ["krx", "korea-exchange", "finance", "api", "sdk"],
-  "files": ["dist", "README.md"]
+  "files": ["dist"]
 }
