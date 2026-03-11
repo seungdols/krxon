@@ -11,9 +11,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # -------------------------------------------------------------------
-  # Job 1: Validate tag matches Cargo.toml version
-  # -------------------------------------------------------------------
   validate:
     name: Validate version
     runs-on: ubuntu-latest
@@ -37,9 +34,6 @@ jobs:
           fi
           echo "version=$TAG_VERSION" >> "$GITHUB_OUTPUT"
 
-  # -------------------------------------------------------------------
-  # Job 2: Run full test suite
-  # -------------------------------------------------------------------
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -64,11 +58,73 @@ jobs:
       - name: Run tests
         run: cargo test
 
-  # -------------------------------------------------------------------
-  # Job 3: Build Rust binary + generate SDKs
-  # -------------------------------------------------------------------
-  build:
-    name: Build & Generate SDKs
+  build-binaries:
+    name: Build binaries (${{ matrix.target }})
+    needs: test
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      actions: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            asset_name: krxon-x86_64-unknown-linux-gnu.tar.gz
+            executable_name: krxon
+            archive_type: tar
+          - runner: macos-13
+            target: x86_64-apple-darwin
+            asset_name: krxon-x86_64-apple-darwin.tar.gz
+            executable_name: krxon
+            archive_type: tar
+          - runner: macos-14
+            target: aarch64-apple-darwin
+            asset_name: krxon-aarch64-apple-darwin.tar.gz
+            executable_name: krxon
+            archive_type: tar
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset_name: krxon-x86_64-pc-windows-msvc.zip
+            executable_name: krxon.exe
+            archive_type: zip
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        with:
+          toolchain: "1.94.0"
+          targets: ${{ matrix.target }}
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Archive binary (tar.gz)
+        if: matrix.archive_type == 'tar'
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp "target/${{ matrix.target }}/release/${{ matrix.executable_name }}" "dist/${{ matrix.executable_name }}"
+          tar -C dist -czf "dist/${{ matrix.asset_name }}" "${{ matrix.executable_name }}"
+
+      - name: Archive binary (zip)
+        if: matrix.archive_type == 'zip'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/${{ matrix.executable_name }}" "dist/${{ matrix.executable_name }}"
+          Compress-Archive -Path "dist/${{ matrix.executable_name }}" -DestinationPath "dist/${{ matrix.asset_name }}" -Force
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: binary-${{ matrix.target }}
+          path: dist/${{ matrix.asset_name }}
+
+  generate-sdks:
+    name: Generate SDKs
     runs-on: ubuntu-latest
     needs: test
     permissions:
@@ -81,15 +137,6 @@ jobs:
         uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
         with:
           toolchain: "1.94.0"
-
-      - name: Cache cargo
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build release binary
         run: cargo build --release
@@ -112,19 +159,37 @@ jobs:
           name: typescript-sdk
           path: /tmp/sdk-typescript/krx/
 
-      - name: Upload release binary
+  checksums:
+    name: Generate checksums
+    runs-on: ubuntu-latest
+    needs: build-binaries
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Download binary artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: binary-*
+          path: /tmp/release-assets
+          merge-multiple: true
+
+      - name: Generate SHA256 checksums
+        shell: bash
+        run: |
+          cd /tmp/release-assets
+          sha256sum krxon-* > checksums.txt
+
+      - name: Upload checksums artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: krxon-linux-amd64
-          path: target/release/krxon
+          name: release-checksums
+          path: /tmp/release-assets/checksums.txt
 
-  # -------------------------------------------------------------------
-  # Job 4: Publish to crates.io
-  # -------------------------------------------------------------------
   publish-crates:
     name: Publish to crates.io
     runs-on: ubuntu-latest
-    needs: [validate, build]
+    needs: [validate, test]
     permissions:
       contents: read
     steps:
@@ -140,13 +205,10 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-  # -------------------------------------------------------------------
-  # Job 5: Publish Python SDK to PyPI
-  # -------------------------------------------------------------------
   publish-pypi:
     name: Publish to PyPI
     runs-on: ubuntu-latest
-    needs: [validate, build]
+    needs: [validate, generate-sdks]
     permissions:
       contents: read
       actions: read
@@ -179,13 +241,10 @@ jobs:
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
 
-  # -------------------------------------------------------------------
-  # Job 6: Publish TypeScript SDK to npm
-  # -------------------------------------------------------------------
   publish-npm:
     name: Publish to npm
     runs-on: ubuntu-latest
-    needs: [validate, build]
+    needs: [validate, generate-sdks]
     permissions:
       contents: read
       actions: read
@@ -223,23 +282,27 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  # -------------------------------------------------------------------
-  # Job 7: Create GitHub Release
-  # -------------------------------------------------------------------
   github-release:
     name: GitHub Release
     runs-on: ubuntu-latest
-    needs: [validate, build, publish-crates, publish-pypi, publish-npm]
+    needs: [validate, build-binaries, checksums, publish-crates, publish-pypi, publish-npm]
     permissions:
       contents: write
       actions: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - name: Download release binary
+      - name: Download binary artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: krxon-linux-amd64
+          pattern: binary-*
+          path: /tmp/release/
+          merge-multiple: true
+
+      - name: Download checksums artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-checksums
           path: /tmp/release/
 
       - name: Extract changelog for this version
@@ -256,7 +319,9 @@ jobs:
         with:
           body_path: /tmp/release-notes.md
           files: |
-            /tmp/release/krxon
+            /tmp/release/krxon-*.tar.gz
+            /tmp/release/krxon-*.zip
+            /tmp/release/checksums.txt
           draft: false
           prerelease: false
         env:

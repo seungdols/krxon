@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.10.0.schema.json
+PackageIdentifier: seungdols.krxon
+PackageVersion: __VERSION__
+PackageLocale: en-US
+Publisher: seungdols
+PublisherUrl: https://github.com/seungdols
+PublisherSupportUrl: https://github.com/seungdols/krxon/issues
+Author: seungdols
+PackageName: krxon
+PackageUrl: https://github.com/seungdols/krxon
+License: MIT
+LicenseUrl: https://github.com/seungdols/krxon/blob/main/LICENSE
+ShortDescription: CLI tool for KRX (Korea Exchange) Open API
+Description: |
+  krxon is a CLI tool for querying KRX Open API market data and generating SDKs.
+Tags:
+  - krx
+  - finance
+  - cli
+ManifestType: defaultLocale
+ManifestVersion: 1.10.0
