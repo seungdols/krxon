@@ -6,6 +6,7 @@ use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use serde_json::Value;
 
 use crate::error::KrxError;
+use crate::utils::user_home_dir;
 
 const DEFAULT_TIMEOUT_SECS: u64 = 30;
 const DEFAULT_BASE_URL: &str = "https://data-dbg.krx.co.kr/svc/apis";
@@ -180,10 +181,7 @@ pub fn resolve_api_key(cli_key: Option<&str>) -> Result<String, KrxError> {
 ///
 /// Expected format: `{ "api_key": "your_api_key" }`
 fn load_api_key_from_config() -> Option<String> {
-    let home = std::env::var("HOME").ok()?;
-    let config_path = std::path::Path::new(&home)
-        .join(".krxon")
-        .join("config.json");
+    let config_path = user_home_dir()?.join(".krxon").join("config.json");
     let content = std::fs::read_to_string(config_path).ok()?;
     let json: serde_json::Value = serde_json::from_str(&content).ok()?;
     json.get("api_key")?.as_str().map(|s| s.to_string())

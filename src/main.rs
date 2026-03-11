@@ -30,6 +30,7 @@ use endpoints::stock::{
     fetch_kosdaq_stock, fetch_kosdaq_stock_info, fetch_kospi_stock, fetch_kospi_stock_info,
 };
 use output::format_records_table;
+use utils::user_home_dir;
 
 /// Prints a formatted table, or `"No data found."` if the table is empty.
 fn print_table<T, F>(headers: &[&str], records: &[T], to_row: F)
@@ -438,9 +439,10 @@ fn output_options(
 /// Creates `~/.krxon/config.json` with the given API key.
 /// Skips if the config file already exists.
 fn handle_init(api_key: &str) -> anyhow::Result<()> {
-    let home =
-        std::env::var("HOME").map_err(|_| anyhow::anyhow!("HOME 환경 변수를 찾을 수 없습니다"))?;
-    let config_dir = std::path::Path::new(&home).join(".krxon");
+    let home = user_home_dir().ok_or_else(|| {
+        anyhow::anyhow!("홈 디렉토리를 찾을 수 없습니다. HOME/USERPROFILE 환경 변수를 확인하세요")
+    })?;
+    let config_dir = home.join(".krxon");
     let config_path = config_dir.join("config.json");
 
     if config_path.exists() {
@@ -480,9 +482,10 @@ fn handle_init(api_key: &str) -> anyhow::Result<()> {
 /// Removes the `~/.krxon` config directory.
 /// Skips if it doesn't exist.
 fn handle_clean() -> anyhow::Result<()> {
-    let home =
-        std::env::var("HOME").map_err(|_| anyhow::anyhow!("HOME 환경 변수를 찾을 수 없습니다"))?;
-    let config_dir = std::path::Path::new(&home).join(".krxon");
+    let home = user_home_dir().ok_or_else(|| {
+        anyhow::anyhow!("홈 디렉토리를 찾을 수 없습니다. HOME/USERPROFILE 환경 변수를 확인하세요")
+    })?;
+    let config_dir = home.join(".krxon");
 
     if !config_dir.exists() {
         println!(
