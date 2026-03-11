@@ -53,7 +53,7 @@ hr{border:none;border-top:1px solid var(--bd);margin:40px 0}
 <body>
 <nav class="sidebar">
 <h1>KRX Open API <span style="font-size:11px;color:var(--tm)">32 endpoints</span></h1>
-<input type="text" id="search" placeholder="Search..." oninput="filter(this.value)">
+<input type="text" id="search" placeholder="Search..." aria-label="Search endpoints" oninput="filter(this.value)">
 <div id="nav"></div>
 </nav>
 <main class="main" id="content"></main>
@@ -106,11 +106,11 @@ const E = [
    res:'BAS_DD:기준일자,ISU_CD:종목코드,ISU_NM:종목명,TDD_CLSPRC:종가,CMPPREVDD_PRC:대비,TDD_OPNPRC:시가,TDD_HGPRC:고가,TDD_LWPRC:저가,ACC_TRDVOL:거래량,ACC_TRDVAL:거래대금,MKTCAP:시가총액,LIST_SHRS:상장증권수,ULY_NM:기초자산 자산명,ULY_PRC:기초자산 종가,CMPPREVDD_PRC_ULY:기초자산 대비,FLUC_RT_ULY:기초자산 등락률'},
   // Derivatives
   {cat:'derivatives',id:'drv-fut_bydd_trd',path:'/drv/fut_bydd_trd',name:'선물 일별매매정보 (주식선물外)',nav:'선물',
-   res:'BAS_DD:기준일자,PROD_NM:상품구분,MKT_NM:시장구분(정규/야간),ISU_CD:종목코드,ISU_NM:종목명,TDD_CLSPRC:종가,CMPPREVDD_PRC:대비,TDD_OPNPRC:시가,TDD_HGPRC:고가,TDD_LWPRC:저가,SPOT_PRC:현물가,SETL_PRC:정산가,ACC_TRDVOL:거래량,ACC_TRDVAL:거래대금,ACC_OPNINT_QTY:미결제약정'},
+   res:'BAS_DD:기준일자,PROD_NM:상품구분,MKT_NM:시장구분(정규/야간),ISU_CD:종목코드,ISU_NM:종목명,TDD_CLSPRC:종가,CMPPREVDD_PRC:대비,TDD_OPNPRC:시가,TDD_HGPRC:고가,TDD_LWPRC:저가,SETL_PRC:정산가,SPOT_PRC:현물가,ACC_TRDVOL:거래량,ACC_TRDVAL:거래대금,ACC_OPNINT_QTY:미결제약정'},
   {cat:'derivatives',id:'drv-eqsfu_stk_bydd_trd',path:'/drv/eqsfu_stk_bydd_trd',name:'주식선물(유가) 일별매매정보',nav:'주식선물 (KOSPI)',
-   res:'BAS_DD:기준일자,PROD_NM:상품구분,MKT_NM:시장구분(정규/야간),ISU_CD:종목코드,ISU_NM:종목명,TDD_CLSPRC:종가,CMPPREVDD_PRC:대비,TDD_OPNPRC:시가,TDD_HGPRC:고가,TDD_LWPRC:저가,SPOT_PRC:현물가,SETL_PRC:정산가,ACC_TRDVOL:거래량,ACC_TRDVAL:거래대금,ACC_OPNINT_QTY:미결제약정'},
+   res:'BAS_DD:기준일자,PROD_NM:상품구분,MKT_NM:시장구분(정규/야간),ISU_CD:종목코드,ISU_NM:종목명,TDD_CLSPRC:종가,CMPPREVDD_PRC:대비,TDD_OPNPRC:시가,TDD_HGPRC:고가,TDD_LWPRC:저가,SETL_PRC:정산가,SPOT_PRC:현물가,ACC_TRDVOL:거래량,ACC_TRDVAL:거래대금,ACC_OPNINT_QTY:미결제약정'},
   {cat:'derivatives',id:'drv-eqkfu_ksq_bydd_trd',path:'/drv/eqkfu_ksq_bydd_trd',name:'주식선물(코스닥) 일별매매정보',nav:'주식선물 (KOSDAQ)',
-   res:'BAS_DD:기준일자,PROD_NM:상품구분,MKT_NM:시장구분(정규/야간),ISU_CD:종목코드,ISU_NM:종목명,TDD_CLSPRC:종가,CMPPREVDD_PRC:대비,TDD_OPNPRC:시가,TDD_HGPRC:고가,TDD_LWPRC:저가,SPOT_PRC:현물가,SETL_PRC:정산가,ACC_TRDVOL:거래량,ACC_TRDVAL:거래대금,ACC_OPNINT_QTY:미결제약정'},
+   res:'BAS_DD:기준일자,PROD_NM:상품구분,MKT_NM:시장구분(정규/야간),ISU_CD:종목코드,ISU_NM:종목명,TDD_CLSPRC:종가,CMPPREVDD_PRC:대비,TDD_OPNPRC:시가,TDD_HGPRC:고가,TDD_LWPRC:저가,SETL_PRC:정산가,SPOT_PRC:현물가,ACC_TRDVOL:거래량,ACC_TRDVAL:거래대금,ACC_OPNINT_QTY:미결제약정'},
   {cat:'derivatives',id:'drv-opt_bydd_trd',path:'/drv/opt_bydd_trd',name:'옵션 일별매매정보 (주식옵션外)',nav:'옵션',
    res:'BAS_DD:기준일자,PROD_NM:상품구분,RGHT_TP_NM:권리유형(CALL/PUT),ISU_CD:종목코드,ISU_NM:종목명,TDD_CLSPRC:종가,CMPPREVDD_PRC:대비,TDD_OPNPRC:시가,TDD_HGPRC:고가,TDD_LWPRC:저가,IMP_VOLT:내재변동성,NXTDD_BAS_PRC:익일정산가,ACC_TRDVOL:거래량,ACC_TRDVAL:거래대금,ACC_OPNINT_QTY:미결제약정'},
   {cat:'derivatives',id:'drv-eqsop_bydd_trd',path:'/drv/eqsop_bydd_trd',name:'주식옵션(유가) 일별매매정보',nav:'주식옵션 (KOSPI)',
@@ -194,7 +194,7 @@ curl -X POST https://data-dbg.krx.co.kr/svc/apis/idx/krx_dd_trd \\
 <li>응답 루트 키: <code>OutBlock_1</code> (배열)</li>
 <li>대부분의 응답 필드는 string 타입 (숫자 포함, 콤마 포함 가능)</li>
 <li>전일 데이터는 익영업일 08:00 KST 갱신</li>
-<li>각 엔드포인트별 <a href="https://openapi.krx.co.kr" target="_blank">openapi.krx.co.kr</a>에서 별도 서비스 신청 필요</li>
+<li>각 엔드포인트별 <a href="https://openapi.krx.co.kr" target="_blank" rel="noopener noreferrer">openapi.krx.co.kr</a>에서 별도 서비스 신청 필요</li>
 </ul></div></div><hr>`;
 
   CATS.forEach(c => {
