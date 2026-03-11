@@ -2,11 +2,11 @@
 //!
 //! Covers 6 endpoints:
 //! - Futures daily (`/drv/fut_bydd_trd`)
-//! - KOSPI stock futures daily (`/drv/stk_fut_bydd_trd`)
-//! - KOSDAQ stock futures daily (`/drv/ksq_fut_bydd_trd`)
+//! - KOSPI stock futures daily (`/drv/eqsfu_stk_bydd_trd`)
+//! - KOSDAQ stock futures daily (`/drv/eqkfu_ksq_bydd_trd`)
 //! - Options daily (`/drv/opt_bydd_trd`)
-//! - KOSPI stock options daily (`/drv/stk_opt_bydd_trd`)
-//! - KOSDAQ stock options daily (`/drv/ksq_opt_bydd_trd`)
+//! - KOSPI stock options daily (`/drv/eqsop_bydd_trd`)
+//! - KOSDAQ stock options daily (`/drv/eqkop_bydd_trd`)
 
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -162,7 +162,7 @@ pub async fn fetch_stock_futures_kospi_daily(
     client: &KrxClient,
     date: &str,
 ) -> Result<Vec<FuturesRecord>, KrxError> {
-    fetch_derivatives(client, "/drv/stk_fut_bydd_trd", date).await
+    fetch_derivatives(client, "/drv/eqsfu_stk_bydd_trd", date).await
 }
 
 /// Fetches KOSDAQ stock futures daily trading data.
@@ -170,7 +170,7 @@ pub async fn fetch_stock_futures_kosdaq_daily(
     client: &KrxClient,
     date: &str,
 ) -> Result<Vec<FuturesRecord>, KrxError> {
-    fetch_derivatives(client, "/drv/ksq_fut_bydd_trd", date).await
+    fetch_derivatives(client, "/drv/eqkfu_ksq_bydd_trd", date).await
 }
 
 /// Fetches options daily trading data.
@@ -186,7 +186,7 @@ pub async fn fetch_stock_options_kospi_daily(
     client: &KrxClient,
     date: &str,
 ) -> Result<Vec<OptionsRecord>, KrxError> {
-    fetch_derivatives(client, "/drv/stk_opt_bydd_trd", date).await
+    fetch_derivatives(client, "/drv/eqsop_bydd_trd", date).await
 }
 
 /// Fetches KOSDAQ stock options daily trading data.
@@ -194,7 +194,7 @@ pub async fn fetch_stock_options_kosdaq_daily(
     client: &KrxClient,
     date: &str,
 ) -> Result<Vec<OptionsRecord>, KrxError> {
-    fetch_derivatives(client, "/drv/ksq_opt_bydd_trd", date).await
+    fetch_derivatives(client, "/drv/eqkop_bydd_trd", date).await
 }
 
 /// Internal helper: calls the given derivatives endpoint path with the given date.
