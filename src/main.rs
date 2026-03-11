@@ -109,14 +109,16 @@ async fn handle_fetch_index(subcommand: IndexSubcommand) -> anyhow::Result<()> {
             print_table(
                 &["Date", "Class", "Name", "Close", "Change", "Rate(%)"],
                 &records,
-                |r| vec![
-                    r.bas_dd.clone(),
-                    r.idx_clss.clone(),
-                    r.idx_nm.clone(),
-                    r.clsprc_idx.clone(),
-                    r.cmpprevdd_idx.clone(),
-                    r.fluc_rt.clone(),
-                ],
+                |r| {
+                    vec![
+                        r.bas_dd.clone(),
+                        r.idx_clss.clone(),
+                        r.idx_nm.clone(),
+                        r.clsprc_idx.clone(),
+                        r.cmpprevdd_idx.clone(),
+                        r.fluc_rt.clone(),
+                    ]
+                },
             );
         }
         _ => {
@@ -178,17 +180,21 @@ fn output_stock_records(
     match output {
         "table" => {
             print_table(
-                &["Date", "ISIN", "Name", "Close", "Change", "Rate(%)", "Volume"],
-                records,
-                |r| vec![
-                    r.bas_dd.clone(),
-                    r.isu_cd.clone(),
-                    r.isu_nm.clone(),
-                    r.tdd_clsprc.clone(),
-                    r.cmpprevdd_prc.clone(),
-                    r.fluc_rt.clone(),
-                    r.acc_trdvol.clone(),
+                &[
+                    "Date", "ISIN", "Name", "Close", "Change", "Rate(%)", "Volume",
                 ],
+                records,
+                |r| {
+                    vec![
+                        r.bas_dd.clone(),
+                        r.isu_cd.clone(),
+                        r.isu_nm.clone(),
+                        r.tdd_clsprc.clone(),
+                        r.cmpprevdd_prc.clone(),
+                        r.fluc_rt.clone(),
+                        r.acc_trdvol.clone(),
+                    ]
+                },
             );
         }
         _ => println!("{}", serde_json::to_string_pretty(&records)?),
@@ -208,16 +214,25 @@ fn output_stock_info_records(
     match output {
         "table" => {
             print_table(
-                &["ISIN", "Code", "Name", "English Name", "Market", "Par Value"],
-                records,
-                |r| vec![
-                    r.isu_cd.clone(),
-                    r.isu_srt_cd.clone(),
-                    r.isu_nm.clone(),
-                    r.isu_eng_nm.clone(),
-                    r.mkt_tp_nm.clone(),
-                    r.parval.clone(),
+                &[
+                    "ISIN",
+                    "Code",
+                    "Name",
+                    "English Name",
+                    "Market",
+                    "Par Value",
                 ],
+                records,
+                |r| {
+                    vec![
+                        r.isu_cd.clone(),
+                        r.isu_srt_cd.clone(),
+                        r.isu_nm.clone(),
+                        r.isu_eng_nm.clone(),
+                        r.mkt_tp_nm.clone(),
+                        r.parval.clone(),
+                    ]
+                },
             );
         }
         _ => println!("{}", serde_json::to_string_pretty(&records)?),
@@ -255,15 +270,17 @@ async fn handle_fetch_etp(subcommand: EtpSubcommand) -> anyhow::Result<()> {
                     print_table(
                         &["Date", "Code", "Name", "Close", "Change", "Rate(%)", "NAV"],
                         &records,
-                        |r| vec![
-                            r.bas_dd.clone(),
-                            r.isu_cd.clone(),
-                            r.isu_nm.clone(),
-                            r.tdd_clsprc.clone(),
-                            r.cmpprevdd_prc.clone(),
-                            r.fluc_rt.clone(),
-                            r.nav.clone(),
-                        ],
+                        |r| {
+                            vec![
+                                r.bas_dd.clone(),
+                                r.isu_cd.clone(),
+                                r.isu_nm.clone(),
+                                r.tdd_clsprc.clone(),
+                                r.cmpprevdd_prc.clone(),
+                                r.fluc_rt.clone(),
+                                r.nav.clone(),
+                            ]
+                        },
                     );
                 }
                 _ => println!("{}", serde_json::to_string_pretty(&records)?),
@@ -277,17 +294,21 @@ async fn handle_fetch_etp(subcommand: EtpSubcommand) -> anyhow::Result<()> {
             match args.output.as_str() {
                 "table" => {
                     print_table(
-                        &["Date", "Code", "Name", "Close", "Change", "Rate(%)", "IndicVal"],
-                        &records,
-                        |r| vec![
-                            r.bas_dd.clone(),
-                            r.isu_cd.clone(),
-                            r.isu_nm.clone(),
-                            r.tdd_clsprc.clone(),
-                            r.cmpprevdd_prc.clone(),
-                            r.fluc_rt.clone(),
-                            r.indic_val_amt.clone(),
+                        &[
+                            "Date", "Code", "Name", "Close", "Change", "Rate(%)", "IndicVal",
                         ],
+                        &records,
+                        |r| {
+                            vec![
+                                r.bas_dd.clone(),
+                                r.isu_cd.clone(),
+                                r.isu_nm.clone(),
+                                r.tdd_clsprc.clone(),
+                                r.cmpprevdd_prc.clone(),
+                                r.fluc_rt.clone(),
+                                r.indic_val_amt.clone(),
+                            ]
+                        },
                     );
                 }
                 _ => println!("{}", serde_json::to_string_pretty(&records)?),
@@ -358,18 +379,22 @@ fn output_futures(
     match output {
         "table" => {
             print_table(
-                &["Date", "Code", "Name", "Close", "Settle", "Change", "Volume", "OpenInt"],
-                records,
-                |r| vec![
-                    r.bas_dd.clone(),
-                    r.isu_cd.clone(),
-                    r.isu_nm.clone(),
-                    r.tdd_clsprc.clone(),
-                    r.setl_prc.clone(),
-                    r.cmpprevdd_prc.clone(),
-                    r.acc_trdvol.clone(),
-                    r.acc_opnint_qty.clone(),
+                &[
+                    "Date", "Code", "Name", "Close", "Settle", "Change", "Volume", "OpenInt",
                 ],
+                records,
+                |r| {
+                    vec![
+                        r.bas_dd.clone(),
+                        r.isu_cd.clone(),
+                        r.isu_nm.clone(),
+                        r.tdd_clsprc.clone(),
+                        r.setl_prc.clone(),
+                        r.cmpprevdd_prc.clone(),
+                        r.acc_trdvol.clone(),
+                        r.acc_opnint_qty.clone(),
+                    ]
+                },
             );
         }
         _ => println!("{}", serde_json::to_string_pretty(&records)?),
@@ -385,18 +410,22 @@ fn output_options(
     match output {
         "table" => {
             print_table(
-                &["Date", "Code", "Name", "Type", "Close", "Change", "Volume", "IV"],
-                records,
-                |r| vec![
-                    r.bas_dd.clone(),
-                    r.isu_cd.clone(),
-                    r.isu_nm.clone(),
-                    r.rght_tp_nm.clone(),
-                    r.tdd_clsprc.clone(),
-                    r.cmpprevdd_prc.clone(),
-                    r.acc_trdvol.clone(),
-                    r.imp_volt.clone(),
+                &[
+                    "Date", "Code", "Name", "Type", "Close", "Change", "Volume", "IV",
                 ],
+                records,
+                |r| {
+                    vec![
+                        r.bas_dd.clone(),
+                        r.isu_cd.clone(),
+                        r.isu_nm.clone(),
+                        r.rght_tp_nm.clone(),
+                        r.tdd_clsprc.clone(),
+                        r.cmpprevdd_prc.clone(),
+                        r.acc_trdvol.clone(),
+                        r.imp_volt.clone(),
+                    ]
+                },
             );
         }
         _ => println!("{}", serde_json::to_string_pretty(&records)?),
@@ -409,8 +438,8 @@ fn output_options(
 /// Creates `~/.krxon/config.json` with the given API key.
 /// Skips if the config file already exists.
 fn handle_init(api_key: &str) -> anyhow::Result<()> {
-    let home = std::env::var("HOME")
-        .map_err(|_| anyhow::anyhow!("HOME 환경 변수를 찾을 수 없습니다"))?;
+    let home =
+        std::env::var("HOME").map_err(|_| anyhow::anyhow!("HOME 환경 변수를 찾을 수 없습니다"))?;
     let config_dir = std::path::Path::new(&home).join(".krxon");
     let config_path = config_dir.join("config.json");
 
@@ -447,12 +476,15 @@ fn handle_init(api_key: &str) -> anyhow::Result<()> {
 /// Removes the `~/.krxon` config directory.
 /// Skips if it doesn't exist.
 fn handle_clean() -> anyhow::Result<()> {
-    let home = std::env::var("HOME")
-        .map_err(|_| anyhow::anyhow!("HOME 환경 변수를 찾을 수 없습니다"))?;
+    let home =
+        std::env::var("HOME").map_err(|_| anyhow::anyhow!("HOME 환경 변수를 찾을 수 없습니다"))?;
     let config_dir = std::path::Path::new(&home).join(".krxon");
 
     if !config_dir.exists() {
-        println!("설정 디렉토리가 존재하지 않습니다: {}", config_dir.display());
+        println!(
+            "설정 디렉토리가 존재하지 않습니다: {}",
+            config_dir.display()
+        );
         return Ok(());
     }
 
