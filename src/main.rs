@@ -465,6 +465,10 @@ fn handle_init(api_key: &str) -> anyhow::Result<()> {
     #[cfg(not(unix))]
     {
         std::fs::write(&config_path, config_bytes)?;
+        eprintln!(
+            "Warning: non-Unix platform detected. Ensure {} is readable only by your user.",
+            config_path.display()
+        );
     }
 
     println!("설정 파일 생성 완료: {}", config_path.display());

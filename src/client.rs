@@ -14,11 +14,20 @@ const DEFAULT_BASE_URL: &str = "https://data-dbg.krx.co.kr/svc/apis";
 ///
 /// Handles authentication, request construction, and response parsing
 /// for all KRX Open API endpoints.
-#[derive(Debug)]
 pub struct KrxClient {
     api_key: String,
     base_url: String,
     client: reqwest::Client,
+}
+
+impl std::fmt::Debug for KrxClient {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("KrxClient")
+            .field("api_key", &"<redacted>")
+            .field("base_url", &self.base_url)
+            .field("client", &"<reqwest::Client>")
+            .finish()
+    }
 }
 
 impl KrxClient {
@@ -248,6 +257,14 @@ mod tests {
     fn test_new_succeeds_with_valid_api_key() {
         let result = KrxClient::new("valid_key_123");
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_debug_redacts_api_key() {
+        let client = KrxClient::new("super_secret_key").unwrap();
+        let debug_output = format!("{client:?}");
+        assert!(!debug_output.contains("super_secret_key"));
+        assert!(debug_output.contains("<redacted>"));
     }
 
     // -- build_url tests --

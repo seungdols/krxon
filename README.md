@@ -148,9 +148,12 @@ krxon generate typescript --out ./sdk/typescript
 | 옵션 | 설명 | 기본값 |
 |------|------|--------|
 | `--date` | 기준일 (YYYYMMDD 형식, 필수) | — |
-| `--key` | API 키 (`KRX_API_KEY` 환경변수 대체) | — |
+| `--key` | API 키 (`KRX_API_KEY` 환경변수 대체, 공유 환경 사용 주의) | — |
 | `--output` | 출력 형식 | `json` |
 | `--isin` | ISIN 코드 필터 (주식, ETP) | — |
+
+보안 권장:
+- 공유/다중 사용자 환경에서는 `--key` 대신 `KRX_API_KEY` 또는 `krxon init` 사용을 권장합니다.
 
 ## SDK Usage
 

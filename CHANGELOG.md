@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-03-11
+
+### Changed
+
+- Hardened release workflow security by pinning GitHub Actions to commit SHAs and reducing default token permissions.
+- Reduced API key exposure risk by redacting secrets in `Debug` output and removing `Debug` derive on CLI argument types.
+- Added security guidance for `--key` usage and platform warning for non-Unix config permission handling.
+
 ## [0.1.0] - 2026-03-10
 
 ### Added
@@ -22,5 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TypeScript SDK with fetch-based KrxClient (ES module)
 - Endpoint specification as single source of truth (`spec/endpoints.yaml`)
 
-[Unreleased]: https://github.com/seungdols/krxon/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/seungdols/krxon/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/seungdols/krxon/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/seungdols/krxon/releases/tag/v0.1.0
