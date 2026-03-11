@@ -2,11 +2,27 @@
 
 use clap::{Parser, Subcommand};
 
-/// krxon - CLI tool and MCP server for KRX Open API.
+/// krxon - CLI tool for KRX Open API.
 #[derive(Parser, Debug)]
 #[command(name = "krxon")]
-#[command(about = "CLI tool and MCP server for KRX (Korea Exchange) Open API")]
+#[command(about = "CLI tool for KRX (Korea Exchange) Open API")]
 #[command(version)]
+#[command(after_help = r#"Examples:
+  krxon index kospi --date 20250301                 Fetch KOSPI index data
+  krxon stock kospi --date 20250301 --output table  Fetch KOSPI stocks as table
+  krxon stock kospi --date 20250301 --isin KR7005930003  Filter by ISIN
+  krxon etp etf --date 20250301                     Fetch ETF data
+  krxon derivatives futures --date 20250301         Fetch futures data
+  krxon generate python --out ./sdk/python          Generate Python SDK
+
+API Key (resolved in order):
+  1. krxon index kospi --key YOUR_KEY  Pass directly with --key flag
+  2. export KRX_API_KEY=YOUR_KEY       Set via shell environment variable
+  3. ~/.krxon/config.json              Config file: { "api_key": "YOUR_KEY" }
+
+Note:
+  'fetch' prefix is optional: 'krxon index ...' = 'krxon fetch index ...'
+  --date must be a business day (YYYYMMDD). Holidays return empty data."#)]
 pub struct Cli {
     /// Subcommand to execute.
     #[command(subcommand)]
@@ -16,15 +32,31 @@ pub struct Cli {
 /// Available subcommands.
 #[derive(Subcommand, Debug)]
 pub enum Commands {
+    /// Initialize config file (~/.krxon/config.json) with API key.
+    Init(InitArgs),
+    /// Remove config directory (~/.krxon). Useful before uninstalling.
+    Clean,
     /// Fetch market data from the KRX API.
     Fetch {
         #[command(subcommand)]
         resource: FetchResource,
     },
     /// Generate SDK clients (Python, TypeScript).
-    Generate,
-    /// Run as an MCP server.
-    Serve,
+    Generate {
+        #[command(subcommand)]
+        language: GenerateLanguage,
+    },
+    /// Shortcut: directly access fetch resources without the `fetch` prefix.
+    #[command(flatten)]
+    FetchShortcut(FetchResource),
+}
+
+/// Arguments for the init subcommand.
+#[derive(clap::Args, Debug)]
+pub struct InitArgs {
+    /// API key to save in ~/.krxon/config.json.
+    #[arg(long)]
+    pub key: String,
 }
 
 /// Fetch resource categories.
@@ -80,15 +112,6 @@ pub enum StockSubcommand {
     KosdaqInfo(StockFetchArgs),
 }
 
-/// ETP subcommands.
-#[derive(Subcommand, Debug)]
-pub enum EtpSubcommand {
-    /// ETF daily trading data.
-    Etf(EtpFetchArgs),
-    /// ETN daily trading data.
-    Etn(EtpFetchArgs),
-}
-
 /// Derivatives subcommands.
 #[derive(Subcommand, Debug)]
 pub enum DerivativesSubcommand {
@@ -108,6 +131,15 @@ pub enum DerivativesSubcommand {
     /// KOSDAQ stock options daily trading data.
     #[command(name = "stock-options-kosdaq")]
     StockOptionsKosdaq(FetchArgs),
+}
+
+/// ETP subcommands.
+#[derive(Subcommand, Debug)]
+pub enum EtpSubcommand {
+    /// ETF daily trading data.
+    Etf(EtpFetchArgs),
+    /// ETN daily trading data.
+    Etn(EtpFetchArgs),
 }
 
 /// Arguments for ETP fetch subcommands.
@@ -156,4 +188,21 @@ pub struct StockFetchArgs {
     /// ISIN code to filter a specific stock (e.g. KR7005930003).
     #[arg(long)]
     pub isin: Option<String>,
+}
+
+/// Generate language targets.
+#[derive(Subcommand, Debug)]
+pub enum GenerateLanguage {
+    /// Generate Python SDK client.
+    Python(GenerateArgs),
+    /// Generate TypeScript SDK client.
+    Typescript(GenerateArgs),
+}
+
+/// Arguments for the generate subcommand.
+#[derive(clap::Args, Debug)]
+pub struct GenerateArgs {
+    /// Output directory for generated SDK files.
+    #[arg(long)]
+    pub out: String,
 }

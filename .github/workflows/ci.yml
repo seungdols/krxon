@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  check:
+    name: Check / Lint / Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.94.0"
+          components: clippy, rustfmt
+
+      - name: Cache cargo registry & build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Check formatting
+        run: cargo fmt -- --check
+
+      - name: Clippy lint
+        run: cargo clippy -- -D warnings
+
+      - name: Run tests
+        run: cargo test
+
+  codegen-smoke:
+    name: SDK Codegen Smoke Test
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.94.0"
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build krxon
+        run: cargo build --release
+
+      - name: Generate Python SDK
+        run: ./target/release/krxon generate python --out /tmp/sdk-python
+
+      - name: Generate TypeScript SDK
+        run: ./target/release/krxon generate typescript --out /tmp/sdk-typescript
+
+      - name: Verify Python SDK structure
+        run: |
+          test -f /tmp/sdk-python/krx/__init__.py
+          test -f /tmp/sdk-python/krx/client.py
+          test -f /tmp/sdk-python/krx/types.py
+          test -f /tmp/sdk-python/krx/endpoints/__init__.py
+
+      - name: Verify TypeScript SDK structure
+        run: |
+          test -f /tmp/sdk-typescript/krx/package.json
+          test -f /tmp/sdk-typescript/krx/tsconfig.json
+          test -f /tmp/sdk-typescript/krx/src/index.ts
+          test -f /tmp/sdk-typescript/krx/src/client.ts
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: TypeScript compile check
+        working-directory: /tmp/sdk-typescript/krx
+        run: |
+          npm install
+          npx tsc --noEmit

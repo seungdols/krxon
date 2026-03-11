@@ -3,8 +3,8 @@
 //! Covers 4 endpoints:
 //! - KRX index daily (`/idx/krx_dd_trd`)
 //! - KOSPI index daily (`/idx/kospi_dd_trd`)
-//! - KOSDAQ index daily (`/idx/ksdaq_dd_trd`)
-//! - Derivatives index daily (`/idx/drv_dd_trd`)
+//! - KOSDAQ index daily (`/idx/kosdaq_dd_trd`)
+//! - Derivatives index daily (`/idx/drvprod_dd_trd`)
 
 use serde::{Deserialize, Serialize};
 
@@ -84,7 +84,7 @@ pub async fn fetch_kosdaq_index(
     client: &KrxClient,
     date: &str,
 ) -> Result<Vec<IndexRecord>, KrxError> {
-    fetch_index(client, "/idx/ksdaq_dd_trd", date).await
+    fetch_index(client, "/idx/kosdaq_dd_trd", date).await
 }
 
 /// Fetches derivatives index daily data.
@@ -92,7 +92,7 @@ pub async fn fetch_derivatives_index(
     client: &KrxClient,
     date: &str,
 ) -> Result<Vec<IndexRecord>, KrxError> {
-    fetch_index(client, "/idx/drv_dd_trd", date).await
+    fetch_index(client, "/idx/drvprod_dd_trd", date).await
 }
 
 /// Internal helper: calls the given index endpoint path with the given date.
