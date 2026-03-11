@@ -23,8 +23,8 @@
 |---------|---------|------|
 | `fetch index krx` | `/idx/krx_dd_trd` | KRX 지수 일별 시세 |
 | `fetch index kospi` | `/idx/kospi_dd_trd` | KOSPI 지수 일별 시세 |
-| `fetch index kosdaq` | `/idx/ksdaq_dd_trd` | KOSDAQ 지수 일별 시세 |
-| `fetch index derivatives` | `/idx/drv_dd_trd` | 파생상품 지수 일별 시세 |
+| `fetch index kosdaq` | `/idx/kosdaq_dd_trd` | KOSDAQ 지수 일별 시세 |
+| `fetch index derivatives` | `/idx/drvprod_dd_trd` | 파생상품 지수 일별 시세 |
 
 **응답 필드**: `BAS_DD`, `IDX_CLSS`, `IDX_NM`, `CLSPRC_IDX`, `CMPPREVDD_IDX`, `FLUC_RT`, `OPNPRC_IDX`, `HGPRC_IDX`, `LWPRC_IDX`, `ACC_TRDVOL`, `ACC_TRDVAL`, `MKTCAP`
 
@@ -65,11 +65,11 @@
 | CLI 명령 | API 경로 | 설명 |
 |---------|---------|------|
 | `fetch derivatives futures` | `/drv/fut_bydd_trd` | 선물 일별 시세 |
-| `fetch derivatives stock-futures-kospi` | `/drv/stk_fut_bydd_trd` | KOSPI 주식선물 일별 시세 |
-| `fetch derivatives stock-futures-kosdaq` | `/drv/ksq_fut_bydd_trd` | KOSDAQ 주식선물 일별 시세 |
+| `fetch derivatives stock-futures-kospi` | `/drv/eqsfu_stk_bydd_trd` | KOSPI 주식선물 일별 시세 |
+| `fetch derivatives stock-futures-kosdaq` | `/drv/eqkfu_ksq_bydd_trd` | KOSDAQ 주식선물 일별 시세 |
 | `fetch derivatives options` | `/drv/opt_bydd_trd` | 옵션 일별 시세 |
-| `fetch derivatives stock-options-kospi` | `/drv/stk_opt_bydd_trd` | KOSPI 주식옵션 일별 시세 |
-| `fetch derivatives stock-options-kosdaq` | `/drv/ksq_opt_bydd_trd` | KOSDAQ 주식옵션 일별 시세 |
+| `fetch derivatives stock-options-kospi` | `/drv/eqsop_bydd_trd` | KOSPI 주식옵션 일별 시세 |
+| `fetch derivatives stock-options-kosdaq` | `/drv/eqkop_bydd_trd` | KOSDAQ 주식옵션 일별 시세 |
 
 **선물 응답 필드**: `BAS_DD`, `ISU_CD`, `ISU_NM`, `PROD_NM`, `MKT_NM`, `TDD_CLSPRC`, `TDD_OPNPRC`, `TDD_HGPRC`, `TDD_LWPRC`, `SETL_PRC`, `SPOT_PRC`, `CMPPREVDD_PRC`, `ACC_TRDVOL`, `ACC_TRDVAL`, `ACC_OPNINT_QTY`
 
