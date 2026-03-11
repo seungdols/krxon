@@ -1,5 +1,7 @@
 //! Utility functions for date validation and formatting.
 
+use std::path::PathBuf;
+
 use crate::error::KrxError;
 
 /// Validates that a date string is in YYYYMMDD format (exactly 8 ASCII digits).
@@ -17,6 +19,35 @@ pub fn validate_date(date: &str) -> Result<(), KrxError> {
 /// Returns today's date as a `YYYYMMDD` string in the local timezone.
 pub fn today() -> String {
     chrono::Local::now().format("%Y%m%d").to_string()
+}
+
+/// Resolves the user's home directory across platforms.
+///
+/// Resolution order:
+/// 1. `HOME`
+/// 2. `USERPROFILE` (Windows)
+/// 3. `HOMEDRIVE` + `HOMEPATH` (Windows)
+pub fn user_home_dir() -> Option<PathBuf> {
+    if let Some(home) = std::env::var_os("HOME") {
+        if !home.is_empty() {
+            return Some(PathBuf::from(home));
+        }
+    }
+
+    if let Some(userprofile) = std::env::var_os("USERPROFILE") {
+        if !userprofile.is_empty() {
+            return Some(PathBuf::from(userprofile));
+        }
+    }
+
+    let homedrive = std::env::var_os("HOMEDRIVE");
+    let homepath = std::env::var_os("HOMEPATH");
+    match (homedrive, homepath) {
+        (Some(drive), Some(path)) if !drive.is_empty() && !path.is_empty() => Some(PathBuf::from(
+            format!("{}{}", drive.to_string_lossy(), path.to_string_lossy()),
+        )),
+        _ => None,
+    }
 }
 
 #[cfg(test)]

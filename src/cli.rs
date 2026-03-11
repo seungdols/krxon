@@ -3,7 +3,7 @@
 use clap::{Parser, Subcommand};
 
 /// krxon - CLI tool for KRX Open API.
-#[derive(Parser, Debug)]
+#[derive(Parser)]
 #[command(name = "krxon")]
 #[command(about = "CLI tool for KRX (Korea Exchange) Open API")]
 #[command(version)]
@@ -20,6 +20,10 @@ API Key (resolved in order):
   2. export KRX_API_KEY=YOUR_KEY       Set via shell environment variable
   3. ~/.krxon/config.json              Config file: { "api_key": "YOUR_KEY" }
 
+Security:
+  Avoid --key on shared systems (shell history/process list may expose it).
+  Prefer KRX_API_KEY env var or krxon init.
+
 Note:
   'fetch' prefix is optional: 'krxon index ...' = 'krxon fetch index ...'
   --date must be a business day (YYYYMMDD). Holidays return empty data."#)]
@@ -30,7 +34,7 @@ pub struct Cli {
 }
 
 /// Available subcommands.
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand)]
 pub enum Commands {
     /// Initialize config file (~/.krxon/config.json) with API key.
     Init(InitArgs),
@@ -52,7 +56,7 @@ pub enum Commands {
 }
 
 /// Arguments for the init subcommand.
-#[derive(clap::Args, Debug)]
+#[derive(clap::Args)]
 pub struct InitArgs {
     /// API key to save in ~/.krxon/config.json.
     #[arg(long)]
@@ -60,7 +64,7 @@ pub struct InitArgs {
 }
 
 /// Fetch resource categories.
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand)]
 pub enum FetchResource {
     /// Fetch index (KRX/KOSPI/KOSDAQ/Derivatives) data.
     Index {
@@ -85,7 +89,7 @@ pub enum FetchResource {
 }
 
 /// Index subcommands.
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand)]
 pub enum IndexSubcommand {
     /// KRX composite index daily data.
     Krx(FetchArgs),
@@ -98,7 +102,7 @@ pub enum IndexSubcommand {
 }
 
 /// Stock subcommands.
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand)]
 pub enum StockSubcommand {
     /// KOSPI stock daily trading data.
     Kospi(StockFetchArgs),
@@ -113,7 +117,7 @@ pub enum StockSubcommand {
 }
 
 /// Derivatives subcommands.
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand)]
 pub enum DerivativesSubcommand {
     /// Futures daily trading data.
     Futures(FetchArgs),
@@ -134,7 +138,7 @@ pub enum DerivativesSubcommand {
 }
 
 /// ETP subcommands.
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand)]
 pub enum EtpSubcommand {
     /// ETF daily trading data.
     Etf(EtpFetchArgs),
@@ -143,7 +147,7 @@ pub enum EtpSubcommand {
 }
 
 /// Arguments for ETP fetch subcommands.
-#[derive(clap::Args, Debug)]
+#[derive(clap::Args)]
 pub struct EtpFetchArgs {
     /// Base date in YYYYMMDD format.
     #[arg(long)]
@@ -163,7 +167,7 @@ pub struct EtpFetchArgs {
 }
 
 /// Common arguments for all fetch subcommands.
-#[derive(clap::Args, Debug)]
+#[derive(clap::Args)]
 pub struct FetchArgs {
     /// Base date in YYYYMMDD format.
     #[arg(long)]
@@ -179,7 +183,7 @@ pub struct FetchArgs {
 }
 
 /// Arguments for stock fetch subcommands (adds --isin option).
-#[derive(clap::Args, Debug)]
+#[derive(clap::Args)]
 pub struct StockFetchArgs {
     /// Common fetch arguments (date, key, output).
     #[command(flatten)]
@@ -191,7 +195,7 @@ pub struct StockFetchArgs {
 }
 
 /// Generate language targets.
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand)]
 pub enum GenerateLanguage {
     /// Generate Python SDK client.
     Python(GenerateArgs),
@@ -200,7 +204,7 @@ pub enum GenerateLanguage {
 }
 
 /// Arguments for the generate subcommand.
-#[derive(clap::Args, Debug)]
+#[derive(clap::Args)]
 pub struct GenerateArgs {
     /// Output directory for generated SDK files.
     #[arg(long)]
