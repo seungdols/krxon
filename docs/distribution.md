@@ -40,8 +40,15 @@ shasum -a 256 /tmp/krxon-src.tgz
 
 ### Install command for users
 
+First-time setup:
+
 ```bash
 brew tap seungdols/krxon https://github.com/seungdols/krxon
+```
+
+Install:
+
+```bash
 brew install krxon
 ```
 

@@ -49,8 +49,15 @@ cargo install krxon
 
 ### Homebrew (macOS/Linux)
 
+첫 설치 시 한 번만 tap 하세요:
+
 ```bash
 brew tap seungdols/krxon https://github.com/seungdols/krxon
+```
+
+그 다음부터는 아래만 실행하면 됩니다:
+
+```bash
 brew install krxon
 ```
 
