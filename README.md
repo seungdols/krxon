@@ -50,7 +50,7 @@ cargo install krxon
 ### Homebrew (macOS/Linux)
 
 ```bash
-brew tap seungdols/krxon
+brew tap seungdols/krxon https://github.com/seungdols/krxon
 brew install krxon
 ```
 
