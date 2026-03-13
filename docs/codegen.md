@@ -36,6 +36,7 @@ krxon generate typescript --out ./sdk/typescript
 
 ```
 <out_dir>/krx/
+├── README.md               # 패키지 안내 문서
 ├── package.json             # @krxon/krx 패키지
 ├── tsconfig.json            # TypeScript 설정
 └── src/
@@ -89,6 +90,7 @@ krxon generate typescript --out ./sdk/typescript
 | 파일 | 설명 |
 |-----|------|
 | `package.json.tera` | npm 패키지 설정 |
+| `README.md.tera` | npm 패키지 README |
 | `tsconfig.json.tera` | TypeScript 컴파일러 설정 |
 | `src/index.ts.tera` | 공개 API re-export |
 | `src/client.ts.tera` | KrxClient 클래스 |

@@ -200,6 +200,9 @@ jobs:
         with:
           toolchain: "1.94.0"
 
+      - name: Verify README is included in crate package
+        run: cargo package --list | grep -E '(^|/)README\.md$'
+
       - name: Publish to crates.io
         run: cargo publish
         env:
@@ -226,7 +229,7 @@ jobs:
           VERSION="${{ needs.validate.outputs.version }}"
           cp sdk/python/pyproject.toml /tmp/pypi-build/pyproject.toml
           sed -i "s/^version = .*/version = \"$VERSION\"/" /tmp/pypi-build/pyproject.toml
-          cp README.md /tmp/pypi-build/README.md
+          cp sdk/python/README.md /tmp/pypi-build/README.md
 
       - name: Install uv
         uses: astral-sh/setup-uv@e4db8464a088ece1b920f60402e813ea4de65b8f # v4
@@ -269,6 +272,7 @@ jobs:
           cd /tmp/npm-build
           jq --arg v "$VERSION" '.version = $v' package.json > package.tmp.json
           mv package.tmp.json package.json
+          cp "$GITHUB_WORKSPACE/README.md" /tmp/npm-build/README.md
 
       - name: Install dependencies & build
         working-directory: /tmp/npm-build

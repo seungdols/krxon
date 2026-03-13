@@ -62,6 +62,7 @@ struct ParamInfo {
 /// ```text
 /// krx/
 /// ├── package.json
+/// ├── README.md
 /// ├── tsconfig.json
 /// └── src/
 ///     ├── index.ts
@@ -93,6 +94,7 @@ pub fn generate(out_dir: &str) -> anyhow::Result<()> {
     fs::create_dir_all(&endpoints_dir)?;
 
     render_package_json(&tera, &base)?;
+    render_readme(&tera, &base)?;
     render_tsconfig(&tera, &base)?;
     render_index(&tera, &src_dir)?;
     render_types(&tera, &spec, &src_dir)?;
@@ -123,6 +125,14 @@ fn render_package_json(tera: &Tera, base: &Path) -> anyhow::Result<()> {
     let ctx = Context::new();
     let rendered = tera.render("package.json.tera", &ctx)?;
     fs::write(base.join("package.json"), rendered)?;
+    Ok(())
+}
+
+/// Renders `README.md`.
+fn render_readme(tera: &Tera, base: &Path) -> anyhow::Result<()> {
+    let ctx = Context::new();
+    let rendered = tera.render("README.md.tera", &ctx)?;
+    fs::write(base.join("README.md"), rendered)?;
     Ok(())
 }
 
@@ -289,6 +299,7 @@ mod tests {
 
         // Config files.
         assert!(out_dir.join("krx/package.json").exists());
+        assert!(out_dir.join("krx/README.md").exists());
         assert!(out_dir.join("krx/tsconfig.json").exists());
 
         // Source files.

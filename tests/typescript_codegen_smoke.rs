@@ -18,6 +18,7 @@ fn test_typescript_sdk_generates_and_compiles() {
     // Verify all expected files exist.
     let expected_files = [
         "krx/package.json",
+        "krx/README.md",
         "krx/tsconfig.json",
         "krx/src/index.ts",
         "krx/src/client.ts",
