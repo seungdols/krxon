@@ -14,9 +14,9 @@ The release workflow publishes these binary assets to GitHub Releases:
 
 ## Homebrew (custom tap)
 
-Create and maintain a dedicated tap repository:
+Use this repository as the Homebrew tap:
 
-- Repository: `github.com/seungdols/homebrew-tap`
+- Repository: `github.com/seungdols/krxon`
 - Formula path: `Formula/krxon.rb`
 
 Use `packaging/homebrew/krxon.rb` in this repo as template.
@@ -36,12 +36,12 @@ shasum -a 256 /tmp/krxon-src.tgz
 - `__VERSION__` -> release version (without `v`)
 - `__SOURCE_SHA256__` -> SHA256 from step 1
 
-3. Commit formula update in `homebrew-tap` and push.
+3. Commit formula update in `krxon` and push.
 
 ### Install command for users
 
 ```bash
-brew tap seungdols/tap
+brew tap seungdols/krxon
 brew install krxon
 ```
 
