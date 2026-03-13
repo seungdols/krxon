@@ -26,7 +26,7 @@ Use `packaging/homebrew/krxon.rb` in this repo as template.
 1. Compute source tarball SHA256 for `vX.Y.Z`:
 
 ```bash
-VERSION=0.1.1
+VERSION=0.1.2
 curl -L "https://github.com/seungdols/krxon/archive/refs/tags/v${VERSION}.tar.gz" -o /tmp/krxon-src.tgz
 shasum -a 256 /tmp/krxon-src.tgz
 ```
