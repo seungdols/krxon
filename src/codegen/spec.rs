@@ -113,7 +113,7 @@ pub struct ResponseFieldDef {
 pub fn load_spec(path: &Path) -> anyhow::Result<Spec> {
     let content = std::fs::read_to_string(path)
         .map_err(|e| anyhow::anyhow!("Failed to read spec file '{}': {}", path.display(), e))?;
-    let spec: Spec = serde_yml::from_str(&content)
+    let spec: Spec = serde_norway::from_str(&content)
         .map_err(|e| anyhow::anyhow!("Failed to parse spec file '{}': {}", path.display(), e))?;
     Ok(spec)
 }
