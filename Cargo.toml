@@ -1,6 +1,6 @@
 [package]
 name = "krxon"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 rust-version = "1.94.0"
 description = "CLI tool for KRX (Korea Exchange) Open API"
@@ -16,7 +16,7 @@ clap = { version = "4", features = ["derive"] }
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
-serde_yml = "0.0.12"
+serde_norway = "0.9"
 tokio = { version = "1", features = ["full"] }
 anyhow = "1"
 thiserror = "2"
